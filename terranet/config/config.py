@@ -1,3 +1,6 @@
+from future.standard_library import install_aliases
+install_aliases()
+
 import itertools as it
 from configparser import ConfigParser
 
@@ -5,7 +8,6 @@ from terranet.config.node import Node, AccessPoint, Station
 from terranet.config.system import System
 
 class Config(object):
-
     def __init__(self, configparser=ConfigParser()):
         self.configparser = configparser
         self.system = None

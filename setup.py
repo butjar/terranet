@@ -12,6 +12,8 @@ setup(
     install_requires=[
         "configparser",
         "jinja2",
+        "whichcraft",
+        "future"
     ],
     package_data={
         'terranet': ['templates/*.j2']
