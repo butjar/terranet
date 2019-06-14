@@ -1,0 +1,5 @@
+{% macro input(name, switch) -%}
+{{ name }} = self.addRouter_openr("{{ name }}")
+s_{{ name }} = self.addSwitch("{{ switch }}")
+self.addLink({{ name }}, s_{{ name }})
+{%- endmacro %}

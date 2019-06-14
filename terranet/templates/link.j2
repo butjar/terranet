@@ -1,0 +1,3 @@
+{% macro input(node1, node2) -%}
+self.addLink(s_{{ node1.name }}, {{ node2.name }})
+{%- endmacro %}
