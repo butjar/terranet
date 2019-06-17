@@ -10,7 +10,7 @@ results from the first simulation. Terranet builds on top of the
 With setuptools:
 
 ```
-python setup.py install
+python setup.py install -f
 ```
 
 With pip (from parent directory):
