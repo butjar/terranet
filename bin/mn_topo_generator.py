@@ -6,7 +6,7 @@ import argparse
 
 from jinja2 import Environment, PackageLoader
 
-from terranet.config.config import Config
+from terranet.config import Config
 
 def render_template(*args,**kwargs):
     env = Environment(
