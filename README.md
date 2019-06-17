@@ -19,9 +19,6 @@ With pip (from parent directory):
 pip install terranet/
 ```
 
-# Create mininet topology
-Run the mn_topo_generator executable:
-
-```
-python ./bin/mn_topo_generator.py --topo=simulations/in/telegraph_gen_network_1.cfg
-```
+# Examples
+We provide example simulations in [examples](examples). Please consult the
+according documentation.
