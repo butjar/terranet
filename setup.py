@@ -3,7 +3,8 @@ setup(
     name="terranet",
     version="0.1",
     packages=find_packages(),
-    scripts=['bin/mn_topo_generator.py'],
+    scripts=['bin/mn_topo_generator.py',
+             'bin/komondor_simulator.py'],
 
     author="Me",
     author_email="me@example.com",
@@ -15,6 +16,7 @@ setup(
         "whichcraft",
         "future"
     ],
+    include_package_data=True,
     package_data={
         'terranet': ['templates/*.j2']
     },
