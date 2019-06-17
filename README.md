@@ -7,7 +7,7 @@ results from the first simulation. Terranet builds on top of the
 [ipmininet](https://github.com/cnp3/ipmininet) mininet plugin.
 
 # Install terranet
-Wtih setuptools:
+With setuptools:
 
 ```
 python setup.py install
