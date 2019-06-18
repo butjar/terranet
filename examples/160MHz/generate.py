@@ -5,7 +5,7 @@ from __future__ import print_function
 import math
 import itertools
 import pkgutil
-from jinja2 import Template
+from jinja2 import Environment, PackageLoader
 from terranet.config import Config, System, AccessPoint, Station
 
 
@@ -15,7 +15,10 @@ def channel_combinations():
            ))
 
 def get_template(*args,**kwargs):
-    template = Template(pkgutil.get_data('terranet', 'templates/config.j2'))
+    env = Environment(
+        loader=PackageLoader('terranet', 'templates'),
+    )
+    template = env.get_template('config.j2')
     return template.render(*args, **kwargs)
     
 def generate_config(networks, channels):
