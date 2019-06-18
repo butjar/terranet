@@ -344,8 +344,9 @@ class Node(ConfigABC):
 
     @classmethod
     def from_config(cls, name, cfg):
-        cfg["lam"] = cfg.pop("lambda")
-        return super(Node, cls).from_config(cls, name, cfg)
+        if "lambda" in cfg:
+            cfg["lam"] = cfg.pop("lambda")
+        return super(Node, cls).from_config(name, cfg)
 
     @property
     def name(self):
