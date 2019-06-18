@@ -40,6 +40,8 @@ class Komondor(object):
         proc = subprocess.Popen(cmd, **kwargs)
         (stdout, stderr) = proc.communicate()
         if proc.returncode != 0:
-            raise RuntimeError("Komondor exited with error code {}: {}"\
-                               .format(proc.returncode, stderr))
+            raise RuntimeError("Komondor exited with error code {}: \n"\
+                               "stdout: {}\n"\
+                               "stderr: {}\n"\
+                               .format(proc.returncode, stdout, stderr))
         return (proc, stdout, stderr)
