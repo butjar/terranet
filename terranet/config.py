@@ -20,17 +20,7 @@ class ConfigABC(with_metaclass(ABCMeta)):
 
     @classmethod
     def from_config(cls, name, cfg):
-        cfg_obj = cls(name=name)
-        for key in cfg:
-            val = cfg[key]
-            try:
-                setattr(cfg_obj, key, val)
-            except AttributeError as err:
-                print("Error while setting attributes: Object {} has no" \
-                      "attribute {}."
-                      .format(cfg_obj, key), file=sys.stderr)
-
-        return cfg_obj
+        return cls(name=name, **dict(cfg))
 
 
 class System(ConfigABC):
@@ -41,7 +31,7 @@ class System(ConfigABC):
             path_loss_model_indoor_outdoor=8,
             path_loss_model_outdoor_outdoor=7, capture_effect=20,
             noise_level=-95, adjacent_channel_model=0, collisions_model=0,
-            constant_PER=0, traffic_model=99, backoff_type=1,
+            constant_per=0, traffic_model=99, backoff_type=1,
             cw_adaptation=False, pifs_activated=False, capture_effect_model=1):
         self._name = name
         self._num_channels = num_channels
@@ -58,7 +48,7 @@ class System(ConfigABC):
         self._noise_level = noise_level
         self._adjacent_channel_model = adjacent_channel_model
         self._collisions_model = collisions_model
-        self._constant_PER = constant_PER
+        self._constant_per = constant_per
         self._traffic_model = traffic_model
         self._backoff_type = backoff_type
         self._cw_adaptation = int(self.__class__ \
@@ -188,12 +178,12 @@ class System(ConfigABC):
         self._collisions_model = int(collisions_model)
 
     @property
-    def constant_PER(self):
-        return self._constant_PER
+    def constant_per(self):
+        return self._constant_per
 
-    @constant_PER.setter
-    def constant_PER(self, constant_PER):
-        self._constant_PER = int(constant_PER)
+    @constant_per.setter
+    def constant_per(self, constant_per):
+        self._constant_per = int(constant_per)
 
     @property
     def traffic_model(self):
