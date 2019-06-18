@@ -123,5 +123,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Examples
 examples/160MHz/cfg/*.cfg
 examples/160MHz/out/*.cfg
+examples/160MHz/terranet.py
