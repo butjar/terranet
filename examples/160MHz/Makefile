@@ -12,7 +12,7 @@ simulate:
 
 terranet:
 	mn_topo_generator.py --topo=$(BASE_CFG) > $@_topo.py
-	chmod +x $(TOPO_FILE)
+	chmod +x $@_topo.py
 
 clean:
 	rm -rf cfg/*
