@@ -6,19 +6,21 @@ import sys
 import os
 import argparse
 import multiprocessing, logging
+from functools import partial
 
 from terranet.komondor import Komondor
 
 def run_komondor_worker(cfg,
-                        dirs,
-                        komondor,
-                        komondor_args):
+                        dirs=[],
+                        komondor=None,
+                        komondor_args={}):
     cfg_file = os.path.abspath(os.path.join(dirs["cfg"], cfg))
     result_file = os.path.abspath(os.path.join(dirs["out"], cfg))
-    komondor_args["stats"] = result_file
-    komondor = Komondor(executable=komondor)
+    args = komondor_args.copy()
+    args["stats"] = result_file
+    k = Komondor(executable=komondor)
 
-    (proc, stdout, stderr) = komondor.run(cfg_file, **komondor_args)
+    (proc, stdout, stderr) = k.run(cfg_file, **args)
     return stderr
 
 def run_komondor_simulations(dirs,
@@ -30,13 +32,10 @@ def run_komondor_simulations(dirs,
         os.listdir(dirs["cfg"])
     ))
     
-    #for cfg in cfg_files:
-    #    run_komondor_worker(cfg, dirs, komondor, komondor_args)
     pool = multiprocessing.Pool(processes)
-    results = [ pool.apply(run_komondor_worker,
-                           args=(cfg, dirs, komondor, komondor_args))
-                for cfg in cfg_files 
-              ]
+    f = partial(run_komondor_worker, dirs=dirs, komondor=komondor,
+                komondor_args=komondor_args)
+    pool.map(f, cfg_files)
 
 
 if __name__ == '__main__':
