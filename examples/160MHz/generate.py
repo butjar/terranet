@@ -10,7 +10,7 @@ from terranet.config import Config, System, AccessPoint, Station
 
 
 def channel_combinations():
-    return list(itertools.ifilter(lambda (x,y): y - x in [0,1,3,8],
+    return list(itertools.ifilter(lambda (x,y): y - x in [0,1,3,7],
                 list(itertools.combinations(tuple(range(8)), 2))
            ))
 
