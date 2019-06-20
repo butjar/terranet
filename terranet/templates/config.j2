@@ -1,51 +1,7 @@
-[{{ config.system.name }}]
-num_channels = {{ config.system.num_channels }}
-basic_channel_bandwidth = {{ config.system.basic_channel_bandwidth }}
-pdf_backoff = {{ config.system.pdf_backoff }}
-pdf_tx_time = {{ config.system.pdf_tx_time }}
-packet_length = {{ config.system.packet_length }}
-num_packets_aggregated = {{ config.system.num_packets_aggregated }}
-path_loss_model_default = {{ config.system.path_loss_model_default }}
-path_loss_model_indoor_indoor = {{ config.system.path_loss_model_indoor_indoor }}
-path_loss_model_indoor_outdoor = {{ config.system.path_loss_model_indoor_outdoor }}
-path_loss_model_outdoor_outdoor = {{ config.system.path_loss_model_outdoor_outdoor }}
-capture_effect = {{ config.system.capture_effect }}
-noise_level = {{ config.system.noise_level }}
-adjacent_channel_model = {{ config.system.adjacent_channel_model }}
-collisions_model = {{ config.system.collisions_model }}
-constant_PER = {{ config.system.constant_PER }}
-traffic_model = {{ config.system.traffic_model }}
-backoff_type = {{ config.system.backoff_type }}
-cw_adaptation = {{ config.system.cw_adaptation }}
-pifs_activated = {{ config.system.pifs_activated }}
-capture_effect_model = {{ config.system.capture_effect_model }}
+{%- import 'system.j2' as system_tmpl %}
+{{ system_tmpl.input(config.system) }}
 
+{%- import 'node.j2' as node_tmpl %}
 {% for node in config.nodes %}
-[{{ node.name }}]
-type = {{ node.type }}
-wlan_code = {{ node.wlan_code }}
-destination_id = {{ node.destination_id }}
-x = {{ node.x }}
-y = {{ node.y }}
-z = {{ node.z }}
-primary_channel = {{ node.primary_channel }}
-min_channel_allowed = {{ node.min_channel_allowed }}
-max_channel_allowed = {{ node.max_channel_allowed }}
-cw = {{ node.cw }}
-cw_stage = {{ node.cw_stage }}
-tpc_min = {{ node.tpc_min }}
-tpc_default = {{ node.tpc_default }}
-tpc_max = {{ node.tpc_max }}
-cca_min = {{ node.cca_min }}
-cca_default = {{ node.cca_default }}
-cca_max = {{ node.cca_max }}
-tx_antenna_gain = {{ node.tx_antenna_gain }}
-rx_antenna_gain = {{ node.rx_antenna_gain }}
-channel_bonding_model = {{ node.channel_bonding_model }}
-modulation_default = {{ node.modulation_default }}
-central_freq = {{ node.central_freq }}
-lambda = {{ node.lam }}
-ieee_protocol = {{ node.ieee_protocol }}
-traffic_load = {{ node.traffic_load }}
-node_env = {{ node.node_env }}
+{{ node_tmpl.input(node) }}
 {% endfor %}

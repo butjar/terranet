@@ -1,9 +1,8 @@
-.PHONY: generate simulate create_topo clean
+BASE_CFG ?= ./cfg/$(shell ls ./cfg | head -n1)
 
-BASE_CFG ?= ./cfg/terranet_000.cfg
-TOPO_FILE ?= ./topo.py
+.PHONY: generate simulate create_topo clean terranet
 
-all: generate_cfg simulate # create_topo
+all: generate_cfg simulate terranet
 
 generate_cfg:
 	./generate.py
@@ -11,11 +10,11 @@ generate_cfg:
 simulate:
 	komondor_simulator.py $(KOMONDOR_ARGS)
 
-#create_topo:
-#	mn_topo_generator.py --topo=$(BASE_CFG) > $(TOPO_FILE)
-#	chmod +x $(TOPO_FILE)
+terranet:
+	mn_topo_generator.py --topo=$(BASE_CFG) > $@_topo.py
+	chmod +x $@_topo.py
 
 clean:
 	rm -rf cfg/*
 	rm -rf out/*
-	rm -rf $(TOPO_FILE)
+	rm -rf terranet_topo.py
