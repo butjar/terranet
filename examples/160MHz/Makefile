@@ -12,7 +12,6 @@ simulate:
 	komondor_simulator.py $(KOMONDOR_ARGS)
 
 terranet:
-	echo $(BASE_OUT)
 	mn_topo_generator.py --cfg=$(BASE_CFG) --out=$(BASE_OUT) > $@_topo.py
 	chmod +x $@_topo.py
 
