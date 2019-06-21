@@ -27,6 +27,7 @@ class OpenrConfig(RouterConfig):
 class SimpleOpenrNet(IPTopo):
     def build(self, *args, **kwargs):
 
+        # Rate limiter
         rl = self.addNode("rl")
 
         # DNs
@@ -58,6 +59,7 @@ if __name__ == '__main__':
     net = IPNet(topo=SimpleOpenrNet(),
                 link=TCLink,
                 switch=OVSBridge)
+    # CN clients
     {%- for cn in config.get_stations() %}
     {%- set short_name = cn.name|replace("Node_", "") %}
     {%- for client in range(cn.num_clients|int) %}
@@ -68,6 +70,7 @@ if __name__ == '__main__':
 
     ap_config = {}
 
+    # Qdisc server
     {%- for dn in config.get_access_points() %}
     {%- set short_name = dn.name|replace("Node_", "") %}
     net["{{ short_name }}"].popen("python3 /home/mininet/terranet/rate-limiter/app.py")
