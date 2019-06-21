@@ -46,6 +46,9 @@ def generate_config(networks, channels):
         for sta_idx, sta in enumerate(range(num_stas)):
             name = "Node_STA_{}{}".format(wlan_code, sta_idx + 1)
             args = { "wlan_code": wlan_code,
+                     "primary_channel": min_ch,
+                     "min_channel_allowed": min_ch,
+                     "max_channel_allowed": max_ch,
                      "x": net["stas"][sta_idx]["x"],
                      "y": net["stas"][sta_idx]["y"],
                      "z": net["stas"][sta_idx]["z"]
@@ -59,15 +62,15 @@ def generate_config(networks, channels):
 if __name__ == '__main__':
     network = { "networks": 
                 [ { "wlan_code": "A", 
-                    "ap": { "x": 20, "y": 0, "z": 0 },
+                    "ap": { "x": 30, "y": 0, "z": 0 },
                     "stas": [ { "x": 10, "y": 20, "z": 0},
-                              { "x": 20, "y": 20, "z": 0} ]
+                              { "x": 30, "y": 20, "z": 0} ]
                   },
                   { "wlan_code": "B", 
-                    "ap": { "x": 40, "y": 0, "z": 0 },
-                    "stas": [ { "x": 30, "y": 20, "z": 0},
-                              { "x": 40, "y": 20, "z": 0},
-                              { "x": 50, "y": 20, "z": 0} ]
+                    "ap": { "x": 70, "y": 0, "z": 0 },
+                    "stas": [ { "x": 50, "y": 20, "z": 0},
+                              { "x": 70, "y": 20, "z": 0},
+                              { "x": 90, "y": 20, "z": 0} ]
                 } ]
               }
 
