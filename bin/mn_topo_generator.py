@@ -19,13 +19,16 @@ def render_template(*args,**kwargs):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--topo', help='topology for komondor simulation')
-    parser.add_argument('--cfg', help='result file from komondor simulation')
+    parser.add_argument('--cfg', help='topology for komondor simulation')
+    parser.add_argument('--out', help='result file from komondor simulation')
 
     args = parser.parse_args()
-    if not (args.topo and os.path.isfile(args.topo)):
+    if not (args.cfg and os.path.isfile(args.cfg)):
         sys.exit("Topology file required")
 
-    config = Config.from_file(args.topo)
+    cfg = [args.cfg]
+    if args.out and os.path.isfile(args.out):
+        cfg.append(args.out)
+    config = Config.from_file(cfg)
     config.build()
     render_template(config=config)
