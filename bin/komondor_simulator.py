@@ -64,7 +64,7 @@ if __name__ == '__main__':
                         help='')
     parser.add_argument('--processes', 
                         nargs='?',
-                        default=4,
+                        default=None,
                         type=int,
                         help='')
     parser.add_argument('--komondor', 

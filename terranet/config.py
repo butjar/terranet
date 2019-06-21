@@ -55,10 +55,9 @@ class Config(object):
         self.nodes = nodes
 
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, filenames):
         cfg = cls()
-        with open(path) as file:
-            cfg.configparser.read_file(file)
+        cfg.configparser.read(filenames)
         cfg.build()
         return cfg
 
@@ -164,5 +163,10 @@ class AccessPoint(Node):
         super(AccessPoint, self).__init__(name=name, type=type, **kwargs)
 
 class Station(Node):
-    def __init__(self, name=None, type=1, **kwargs):
+    def __init__(self, name=None, type=1, num_clients=3, throughput=None,
+                 delay=None, wlan=0, **kwargs):
+        self.num_clients = num_clients
+        self.throughput = throughput
+        self.delay = delay
+        self.wlan = wlan
         super(Station, self).__init__(name=name, type=type, **kwargs)
