@@ -59,7 +59,7 @@ if __name__ == '__main__':
     {%- set short_name = cn.name|replace("Node_", "") %}
     {%- for client in range(cn.num_clients|int) %}
     {%- set client_name = short_name ~ "_C" ~ loop.index %}
-    net["{{ client_name }}"].popen("iperf -s")
+    net["{{ client_name }}"].popen("iperf -s -V")
     {%- endfor %}
     {%- endfor %}
 
