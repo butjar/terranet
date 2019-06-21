@@ -65,6 +65,11 @@ if __name__ == '__main__':
     {%- endfor %}
     {%- endfor %}
 
+    {%- for dn in config.get_access_points() %}
+    {%- set short_name = dn.name|replace("Node_", "") %}
+    net["{{ short_name }}"].popen("python3 /home/mininet/terranet/rate-limiter/app.py")
+    {%- endfor %}
+
     net.start()
     IPCLI(net)
     net.stop()
