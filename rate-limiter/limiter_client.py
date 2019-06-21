@@ -1,16 +1,28 @@
 import requests
 import configparser
+import json
+import subprocess
+import sys
 
-BASE_ADDR = "10.0.0.0"
 PORT = 5000
 
 class Limiter():
     """Applies TC rate limiting to distribution nodes"""
-    def __init__(self, result_config_path):
-        self.config_path = result_config_path
+
+    def __init__(self, apconfig_path, watch_path):
+        self.apconfig_path = apconfig_path
+        self.watch_path = watch_path
+
+        with open(apconfig_path, 'r') as f:
+            self.ip_info = json.load(f)
+
+        with open(watch_path, 'r') as f:
+            self.config_path = json.load(f)['path']
+
         with open(self.config_path, 'r') as f:
             self.cfg = configparser.ConfigParser()
             self.cfg.read_file(f)
+
 
     @staticmethod
     def ipv4_str_to_num(ip):
@@ -28,12 +40,6 @@ class Limiter():
 
         return '.'.join(octets)
 
-    def ap_name_to_ipv4(self, ap_name):
-        offset = 0
-        for c in ap_name:
-            offset += ord(c) - ord('A') + 1
-
-        return self.num_to_ipv4_str(self.ipv4_str_to_num(BASE_ADDR) + offset)
 
     def switch_config(self, result_config_path):
         self.config_path = result_config_path
@@ -43,11 +49,11 @@ class Limiter():
     def apply_limits(self):
         for s in filter(lambda sec: sec.startswith('Node_STA_'), self.cfg.sections()):
             sname = s.split('Node_STA_')[1]
-            ap_name = sname.rstrip('0123456789')
+            ap_name = 'AP_' + sname.rstrip('0123456789')
             if_num = int(sname.split(ap_name)[1])
 
-            addr = self.ap_name_to_ipv4(ap_name)
-            if_name = "AP_%s-eth%d" % (ap_name, if_num)
+            addr = self.ip_info['Node_' + ap_name]
+            if_name = "%s-eth%d" % (ap_name, if_num)
 
             endpoint = 'http://%s:%d/limit/%s/' % (addr, PORT, if_name)
             tp = max(self.cfg.getint(s,'throughput'), 8)
@@ -62,11 +68,19 @@ class Limiter():
             except requests.ConnectionError as e:
                 print e
 
+    def watch(self):
+        while True:
+            args = ['inotifywait', '-e', 'modify', self.watch_path]
+            subprocess.call(args=args)
+
+            with open(self.watch_path, 'r') as f:
+                self.config_path = json.load(f)['path']
+
+            self.apply_limits()
 
 if __name__ == '__main__':
-    lim = Limiter('/home/sebastian/Dokumente/terranet/examples/160MHz/out/terranet_000.cfg')
-    lim.apply_limits()
-
-
-
-
+    apconf = sys.argv[1]
+    watch_path = sys.argv[2]
+    limiter = Limiter(apconf, watch_path)
+    limiter.apply_limits()
+    limiter.watch()
