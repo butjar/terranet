@@ -165,6 +165,7 @@ class AccessPoint(Node):
 class Station(Node):
     def __init__(self, name=None, type=1, num_clients=3, throughput=None,
                  delay=None, wlan=0, **kwargs):
+        self.num_clients = num_clients
         self.throughput = throughput
         self.delay = delay
         self.wlan = wlan
