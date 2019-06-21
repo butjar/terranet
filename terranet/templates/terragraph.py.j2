@@ -50,6 +50,14 @@ if __name__ == '__main__':
     net = IPNet(topo=SimpleOpenrNet(),
                 link=TCLink,
                 switch=OVSSwitch)
+    {%- for cn in config.get_stations() %}
+    {%- set short_name = cn.name|replace("Node_", "") %}
+    {%- for client in range(cn.num_clients|int) %}
+    {%- set client_name = short_name ~ "_C" ~ loop.index %}
+    net["{{ client_name }}"].popen("iperf -s")
+    {%- endfor %}
+    {%- endfor %}
+
     net.start()
     IPCLI(net)
     net.stop()

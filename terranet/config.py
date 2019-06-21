@@ -164,5 +164,5 @@ class AccessPoint(Node):
         super(AccessPoint, self).__init__(name=name, type=type, **kwargs)
 
 class Station(Node):
-    def __init__(self, name=None, type=1, **kwargs):
+    def __init__(self, name=None, type=1, num_clients=3, **kwargs):
         super(Station, self).__init__(name=name, type=type, **kwargs)

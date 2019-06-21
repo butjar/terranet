@@ -1,4 +1,9 @@
 {% macro input(node) -%}
 {%- set short_name = node.name|replace("Node_", "") %}
 {{ short_name }} = self.addRouter_openr("{{ short_name }}")
+{%- for client in range(node.num_clients|int) %}
+{%- set client_name = short_name ~ "_C" ~ loop.index %}
+{{ client_name }} = self.addNode("{{ client_name }}")
+self.addLink({{ short_name }}, {{ client_name }})
+{%- endfor %}
 {%- endmacro %}
