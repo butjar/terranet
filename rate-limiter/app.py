@@ -26,7 +26,6 @@ def modify_link(dev, rate, burst, latency, delete=False):
         subprocess.check_call(args=args)
 
 
-
 @app.route('/limit/<dev>/', methods=['PUT', 'GET', 'DEL'])
 def limit(dev):
     if request.method in ['PUT', 'DEL']:

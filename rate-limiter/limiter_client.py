@@ -38,8 +38,7 @@ class Limiter():
     def switch_config(self, result_config_path):
         self.config_path = result_config_path
         self.cfg = configparser.ConfigParser().read_file(result_config_path)
-
-        pass
+        self.apply_limits()
 
     def apply_limits(self):
         for s in filter(lambda sec: sec.startswith('Node_STA_'), self.cfg.sections()):
