@@ -2,7 +2,7 @@
 from mininet.cli import CLI
 from mininet.log import lg, info
 from mininet.link import TCLink
-from mininet.node import OVSSwitch
+from mininet.node import OVSBridge
 
 from ipmininet.ipnet import IPNet
 from ipmininet.iptopo import IPTopo
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     net = SimpleOpenrNet()
     net = IPNet(topo=SimpleOpenrNet(),
                 link=TCLink,
-                switch=OVSSwitch)
+                switch=OVSBridge)
     {%- for cn in config.get_stations() %}
     {%- set short_name = cn.name|replace("Node_", "") %}
     {%- for client in range(cn.num_clients|int) %}
