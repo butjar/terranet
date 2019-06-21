@@ -26,6 +26,8 @@ class OpenrConfig(RouterConfig):
 class SimpleOpenrNet(IPTopo):
     def build(self, *args, **kwargs):
 
+        rl = self.addNode("rl")
+
         # DNs
         {%- import 'dn.j2' as dn_tmpl %}
         {%- for dn in config.get_access_points() %}

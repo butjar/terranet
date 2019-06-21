@@ -3,4 +3,5 @@
 {{ short_name }} = self.addRouter_openr("{{ short_name }}")
 #s_{{ short_name }} = self.addSwitch("{{ switch }}")
 #self.addLink({{ short_name }}, s_{{ short_name }})
+self.addLink({{ short_name }}, rl)
 {%- endmacro %}
