@@ -1,3 +1,5 @@
-{% macro input(name1, name2) -%}
+{%- macro input(node1, node2) %}
+{%- set name1 = node1.name|replace("Node_", "") %}
+{%- set name2 = node2.name|replace("Node_", "") %}
 self.addLink(s_{{ name1 }}, {{ name2 }})
 {%- endmacro %}

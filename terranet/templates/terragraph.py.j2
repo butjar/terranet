@@ -24,19 +24,19 @@ class SimpleOpenrNet(IPTopo):
         # DNs
         {%- import 'dn.j2' as dn_tmpl %}
         {%- for dn in config.get_access_points() %}
-        {{ dn_tmpl.input(dn.name|replace("Node_", ""), 's{}'.format(loop.index))|indent(8) }}
+        {{ dn_tmpl.input(dn, 's{}'.format(loop.index))|indent(8) }}
         {% endfor %}
 
         # CNs
         {%- import 'cn.j2' as cn_tmpl %}
         {%- for cn in config.get_stations() %}
-        {{ cn_tmpl.input(cn.name|replace("Node_", "")) }}
+        {{ cn_tmpl.input(cn)|indent(8) }}
         {%- endfor %}
 
         # Links
         {%- import 'link.j2' as link_tmpl %}
         {%- for (node1, node2) in config.get_links() %}
-        {{ link_tmpl.input(node1.name|replace("Node_", ""), node2.name|replace("Node_", "")) }}
+        {{ link_tmpl.input(node1, node2)|indent(8) }}
         {%- endfor %}
 
         super(SimpleOpenrNet, self).build(*args, **kwargs)

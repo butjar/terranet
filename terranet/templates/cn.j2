@@ -1,3 +1,4 @@
-{% macro input(name) -%}
-{{ name }} = self.addRouter_openr("{{ name }}")
+{% macro input(node) -%}
+{%- set short_name = node.name|replace("Node_", "") %}
+{{ short_name }} = self.addRouter_openr("{{ short_name }}")
 {%- endmacro %}
