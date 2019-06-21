@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import json
 from mininet.cli import CLI
 from mininet.log import lg, info
 from mininet.link import TCLink
@@ -65,10 +66,20 @@ if __name__ == '__main__':
     {%- endfor %}
     {%- endfor %}
 
+    ap_config = {}
+
     {%- for dn in config.get_access_points() %}
     {%- set short_name = dn.name|replace("Node_", "") %}
     net["{{ short_name }}"].popen("python3 /home/mininet/terranet/rate-limiter/app.py")
+    ip4_{{ short_name }}_rl = net["{{ short_name }}"].IP()
+    ap_config["{{ dn.name }}"] = ip4_{{ short_name }}_rl
     {%- endfor %}
+
+    with open("/tmp/apconfig.json", "w") as f:
+        f.write(json.dumps(ap_config))
+
+    # Start rate limiter
+    net["rl"].popen("python /home/mininet/terranet/rate-limiter/limiter_client.py /tmp/apconfig.json /tmp/ratelimits.json")
 
     net.start()
     IPCLI(net)

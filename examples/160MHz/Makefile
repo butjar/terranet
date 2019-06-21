@@ -14,8 +14,10 @@ simulate:
 terranet:
 	mn_topo_generator.py --cfg=$(BASE_CFG) --out=$(BASE_OUT) > $@_topo.py
 	chmod +x $@_topo.py
+	echo "{ \"path\": \"$(shell readlink -f $(BASE_OUT))\" }" > /tmp/ratelimits.json
 
 clean:
 	rm -rf cfg/*
 	rm -rf out/*
 	rm -rf terranet_topo.py
+	rm -rf /tmp/ratelimits.json
