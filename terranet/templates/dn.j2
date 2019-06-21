@@ -1,5 +1,6 @@
-{% macro input(name, switch) -%}
-{{ name }} = self.addRouter_openr("{{ name }}")
-s_{{ name }} = self.addSwitch("{{ switch }}")
-self.addLink({{ name }}, s_{{ name }})
+{% macro input(node, switch) -%}
+{%- set short_name = node.name|replace("Node_", "") %}
+{{ short_name }} = self.addRouter_openr("{{ short_name }}")
+s_{{ short_name }} = self.addSwitch("{{ switch }}")
+self.addLink({{ short_name }}, s_{{ short_name }})
 {%- endmacro %}

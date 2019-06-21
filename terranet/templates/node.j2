@@ -26,4 +26,7 @@ lambda = {{ node.lam }}
 ieee_protocol = {{ node.ieee_protocol }}
 traffic_load = {{ node.traffic_load }}
 node_env = {{ node.node_env }}
+{%- if node.num_clients is defined %}
+num_clients = {{ node.num_clients }}
+{%- endif %}
 {%- endmacro %}
