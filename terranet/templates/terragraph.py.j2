@@ -82,8 +82,11 @@ if __name__ == '__main__':
         f.write(json.dumps(ap_config))
 
     # Start rate limiter
-    net["rl"].popen("python /home/mininet/terranet/rate-limiter/limiter_client.py /tmp/apconfig.json /tmp/ratelimits.json")
+
+    import time
 
     net.start()
+    time.sleep(3)
+    net["rl"].popen("python /home/mininet/terranet/rate-limiter/limiter_client.py /tmp/apconfig.json /tmp/ratelimits.json")
     IPCLI(net)
     net.stop()

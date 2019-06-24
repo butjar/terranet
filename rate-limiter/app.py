@@ -16,14 +16,19 @@ def modify_link(dev, rate, burst, latency, delete=False):
             'burst', '%s' % burst,
             'latency', '%s' % latency]
     try:
-        subprocess.check_call(args=args)
-    except subprocess.CalledProcessError:
+        subprocess.check_output(args=args, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
         #try to delete previous filter rule
         a = ['tc', 'qdisc', 'del',
             'dev',  '%s' % dev,
             'root']
-        subprocess.check_call(args=a)
-        subprocess.check_call(args=args)
+
+        try:
+            subprocess.check_output(args=a, stderr=subprocess.STDOUT)
+            subprocess.check_output(args=args, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e2:
+            # old error is more interesting
+            raise e
 
 
 @app.route('/limit/<dev>/', methods=['PUT', 'GET', 'DEL'])
@@ -37,23 +42,24 @@ def limit(dev):
             latency = data['latency']
         except KeyError as e:
             print(e)
-            abort(500)
+            abort(400)
+            response = {'status': 'failed', 'error': str(e)}
+            return jsonify(response)
 
         try:
-            operation = request.method == 'DEL'
-            modify_link(dev,rate,burst,latency, delete=operation)
+            is_delete = True if request.method == 'DEL' else False
+            modify_link(dev, rate, burst, latency, delete=is_delete)
             response = {'status': 'ok'}
         except subprocess.CalledProcessError as e:
-            print(e)
-            response = {'status': 'failed'}
+            response = {'status': 'failed', 'error': repr(e), 'out': str(e.output)}
 
         return jsonify(response)
 
     elif request.method == 'GET':
-        return dev
+        return jsonify({'dev': dev})
     else:
         abort(404)
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', debug=True)
