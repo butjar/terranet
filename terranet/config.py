@@ -3,16 +3,30 @@ from future.utils import with_metaclass
 from future.standard_library import install_aliases
 install_aliases()
 
-import sys
-from abc import ABCMeta, abstractproperty
+from abc import ABCMeta
 import itertools as it
+import copy
 from configparser import ConfigParser
 
 
+'''
+FIXME: If constructed by us, all attributes have the right types but if we read a config from file
+all attributes are suddenly strings because configparser does not know the types.
+Could be fixed by casting in the constructor.
+'''
 class ConfigABC(with_metaclass(ABCMeta)):
     @classmethod
     def from_config(cls, name, cfg):
         return cls(name=name, **dict(cfg))
+
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            setattr(result, k, copy.deepcopy(v))
+        return result
 
 
 class System(ConfigABC):
@@ -47,18 +61,40 @@ class System(ConfigABC):
         self.pifs_activated = pifs_activated
         self.capture_effect_model = capture_effect_model
 
+    def __eq__(self, other):
+        # NOTE: This should really be done explicitly. But I'm lazy...
+        # TODO: One should implement __hash__ if he overrides __eq__
+        for a in self.__dict__:
+            if a not in other.__dict__:
+                return False
+            if self.__dict__[a] != other.__dict__[a]:
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            setattr(result, k, copy.deepcopy(v))
+        return result
+
 
 class Config(object):
-    def __init__(self, configparser=ConfigParser(), system=System(), nodes=[]):
-        self.configparser = configparser
-        self.system = system
-        self.nodes = nodes
+    def __init__(self, configparser=None, system=None, nodes=None):
+        self.configparser = configparser if configparser is not None else ConfigParser()
+        self.system = system if system is not None else System()
+        self.nodes = nodes if nodes is not None else []
 
     @classmethod
     def from_file(cls, filenames):
         cfg = cls()
         cfg.configparser.read(filenames)
         cfg.build()
+        cfg.configparser = None
         return cfg
 
     def build(self):
@@ -99,6 +135,34 @@ class Config(object):
 
         return links
 
+    def __eq__(self, other):
+        if not self.system == other.system:
+            return False
+
+        my_nodes = sorted(self.nodes, key=lambda n: n.name)
+        other_nodes = sorted(other.nodes, key=lambda n: n.name)
+
+        if len(my_nodes) != len(other_nodes):
+            return False
+
+        comp_vec = map(lambda n: n[0] == n[1], zip(my_nodes, other_nodes))
+        return not False in comp_vec
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            if k == 'configparser':
+                setattr(result, k, None)
+                continue
+            setattr(result, k, copy.deepcopy(v))
+        return result
+
+
 
 class Node(ConfigABC):
     def __init__(self, name=None, type=0, wlan_code="A", destination_id=-1,
@@ -137,6 +201,9 @@ class Node(ConfigABC):
         self.traffic_load = traffic_load
         self.node_env = node_env
 
+    def short(self):
+        return self.name.split('Node_')[1] if self.name.startswith('Node_') else self.name
+
     @classmethod
     def factory(cls, name, cfg):
         if cfg["type"] == "0":
@@ -157,6 +224,28 @@ class Node(ConfigABC):
 
     def is_sta(self):
         return self.type == 1
+
+    def __eq__(self, other):
+        # NOTE: This should really be done explicitly. But I'm lazy...
+        # TODO: One should implement __hash__ if he overrides __eq__
+        for a in self.__dict__.keys():
+            if a not in other.__dict__:
+                return False
+            if self.__dict__[a] != other.__dict__[a]:
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            setattr(result, k, copy.deepcopy(v))
+        return result
+
 
 class AccessPoint(Node):
     def __init__(self, name=None, type=0, **kwargs):
