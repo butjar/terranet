@@ -57,8 +57,8 @@ class FronthaulEmulator:
                 if s.startswith('Node_') and 'wlan' in parser[s] and parser[s]['wlan'] == dn.wlan:
                     rate = max(parser.getint(s, 'throughput'), 8)
                     delay = max(parser.getfloat(s, 'delay'), 0.001)
-                    delay = 10.0 # FIXME I think delay is not what we think it is.
-                    burst = 0.5*rate  # TODO: is this the right thing to do?
+                    delay = 10.0  # FIXME I think delay is not what we think it is.
+                    burst = 0.5 * rate  # TODO: is this the right thing to do?
                     burst = 32e3
                     cn_name = s.split('Node_')[1]
                     dn.limit(cn_name, rate, burst, delay)
@@ -152,10 +152,12 @@ class DistributionNode(ipmininet.router.Router):
             print('No interface found for ClientNode %s' % cn_name)
             return
         burst_kbit = burst // 1024
-        cmd = 'tc qdisc add dev %s root tbf rate %dbit burst %dkbit latency %0.3fms' % (if_name, rate, burst_kbit, latency)
-        cmd_replace = 'tc qdisc replace dev %s root tbf rate %dbit burst %dkbit latency %0.3fms' % (if_name, rate, burst_kbit, latency)
+        cmd = 'tc qdisc add dev %s root tbf rate %dbit burst %dkbit latency %0.3fms' % (
+            if_name, rate, burst_kbit, latency)
+        cmd_replace = 'tc qdisc replace dev %s root tbf rate %dbit burst %dkbit latency %0.3fms' % (
+            if_name, rate, burst_kbit, latency)
         self.cmdPrint(cmd_replace)  # Replace possibly existing previous rule
-        self.cmdPrint(cmd) # Just to make sure. This is lazy. I know.
+        self.cmdPrint(cmd)  # Just to make sure. This is lazy. I know.
 
     def handle_ap_daemon(self):
         self.ap_daemon = self.popen('python ap_daemon.py')
@@ -196,7 +198,7 @@ class TerraNetClient(ipmininet.ipnet.Host):
     def terminate(self):
         for p in self.processes:
             try:
-                os.kill(-1*p.pid, 9)
+                os.kill(-1 * p.pid, 9)
             except OSError:
                 pass
 
@@ -224,7 +226,8 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
         topo = cls()
         prev = None
         for ap in cfg.get_access_points():
-            topo.addRouter(ap.short(), cls=DistributionNode, fronthaul_emulator=fh_emulator, wlan=ap.wlan_code, config=OpenrConfig, privateDirs=['/tmp', '/var/log'])
+            topo.addRouter(ap.short(), cls=DistributionNode, fronthaul_emulator=fh_emulator, wlan=ap.wlan_code,
+                           config=OpenrConfig, privateDirs=['/tmp', '/var/log'])
 
             if prev is not None:
                 topo.addLink(prev.short(), ap.short())
@@ -233,8 +236,8 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
                 topo.addRouter(sta.short(), cls=ClientNode, config=OpenrConfig, privateDirs=['/tmp', '/var/log'])
                 topo.addLink(ap.short(), sta.short())
 
-                num_clients = 1 # TODO  For now every station gets three clients, make this configurable
-                for i in range(1, num_clients+1):
+                num_clients = 1  # TODO  For now every station gets three clients, make this configurable
+                for i in range(1, num_clients + 1):
                     client_name = sta.short() + '_C%d' % i
                     topo.addHost(client_name, cls=TerraNetClient)
                     topo.addLink(sta.short(), client_name)
@@ -244,7 +247,8 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
         # TODO Gateway + Controller instance.
         # --> idea: take an external intf and drag it into gw namespace. Then make gw a NAT node
         # Problems: no IPv6 at TUB :_( + IPv4 Routing screwed up in OpenR
-        topo.addRouter('gw', cls=TerraNetGateway, dev='enp0s3', config=OpenrConfig, privateDirs=['/tmp', '/var/log'])  # Gateway -- Not a DN
+        topo.addRouter('gw', cls=TerraNetGateway, dev='enp0s3', config=OpenrConfig,
+                       privateDirs=['/tmp', '/var/log'])  # Gateway -- Not a DN
         topo.addLink(prev.short(), 'gw')
 
         return topo
@@ -300,7 +304,7 @@ def main(args):
         iperf_threads.append(p)
         p.start()
 
-    #ipmininet.cli.IPCLI(net)
+    # ipmininet.cli.IPCLI(net)
     raw_input('Press any key to exit')
 
     for t in iperf_threads:
@@ -310,6 +314,7 @@ def main(args):
         t.join()
 
     net.stop()
+
 
 class PseudoMeterer(threading.Thread):
     def __init__(self, src, dst, socket, lock):
@@ -327,22 +332,27 @@ class PseudoMeterer(threading.Thread):
         while self.running:
             _, ip6 = ipmininet.utils.address_pair(self.dst)
             if ip6 is None:
-                time.sleep(5)
+                time.sleep(3)
                 continue
-            p = self.src.popen('iperf -y c -V -t 10 -c %s' % ip6)
-            o, e = p.communicate()
+            p = self.src.popen('iperf -y c -V -t 300 -i 5 -c %s' % ip6)
 
-            if e != '':
-                time.sleep(5)
-                continue
-            payload = "{}".format(int(o.split(',')[8]) / 1e6)
-            with self.lock:
-                msg = '{topic},{payload}'.format(topic=topic, payload=payload)
-                #print(msg)
-                self.socket.send(topic, flags=zmq.SNDMORE)
-                self.socket.send(payload)
+            while p.poll() is None and self.running:
+                rlist, _, _ = select.select([p.stdout, p.stderr], [], [], 7)
 
+                if p.stderr in rlist:
+                    time.sleep(3)
+                    continue
 
+                if p.stdout in rlist:
+                    o = p.stdout.readline()
+
+                    if o == "":
+                        break
+
+                    payload = "{}".format(int(o.split(',')[8]) / 1e6)
+                    with self.lock:
+                        self.socket.send(topic, flags=zmq.SNDMORE)
+                        self.socket.send(payload)
 
 
 if __name__ == '__main__':
