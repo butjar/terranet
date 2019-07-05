@@ -11,6 +11,8 @@ import configparser
 import select
 import zmq
 import time
+import subprocess
+import math
 
 import ipmininet.ipnet
 import ipmininet.iptopo
@@ -18,6 +20,9 @@ import ipmininet.cli
 import ipmininet.link
 import ipmininet.router.config as ipcfg
 import ipmininet.utils
+
+import networkx
+import matplotlib.pyplot
 
 
 class OpenrConfig(ipcfg.RouterConfig):
@@ -40,6 +45,11 @@ class FronthaulEmulator:
         self.current_tuple = cfg_tuples[starting_index]
         self.lock = threading.Lock()
         self.registered_dns = []
+        self.pub_port = 4568
+
+        self.ctx = zmq.Context()
+        self.pub = self.ctx.socket(zmq.PUB)
+        self.pub.bind('tcp://127.0.0.1:{}'.format(self.pub_port))
 
     def register(self, dn):
         self.registered_dns.append(dn)
@@ -62,6 +72,15 @@ class FronthaulEmulator:
                     burst = 32e3
                     cn_name = s.split('Node_')[1]
                     dn.limit(cn_name, rate, burst, delay)
+
+        text = ''
+        for ap in cfg_tuple[0].get_access_points():
+            text += '<p>{name}: {min} -- {max} ({bw} MHz)</p>\n'.format(name=ap.short(),
+                                                                        min=ap.min_channel_allowed,
+                                                                        max=ap.max_channel_allowed,
+                                                                        bw=20 * (int(ap.max_channel_allowed) - int(
+                                                                            ap.min_channel_allowed) + 1))
+            self.pub.send_multipart(['config', text])
 
     def change_global_config(self, dn_name, changes):
         with self.lock:
@@ -99,8 +118,9 @@ class FronthaulEmulator:
 
 
 class DistributionNode(ipmininet.router.Router):
-    def __init__(self, name, fronthaul_emulator, wlan, **params):
+    def __init__(self, name, fronthaul_emulator, wlan, pos=None, **params):
         self.fh_emulator = fronthaul_emulator
+        self.pos = pos
         self.processes = []
         self.wlan = wlan
         self.ap_daemon_handler = threading.Thread(target=self.handle_ap_daemon)
@@ -186,13 +206,15 @@ class DistributionNode(ipmininet.router.Router):
 
 
 class ClientNode(ipmininet.router.Router):
-    def __init__(self, name, **params):
+    def __init__(self, name, pos=None, **params):
+        self.pos = pos
         super(ClientNode, self).__init__(name, **params)
 
 
 class TerraNetClient(ipmininet.ipnet.Host):
-    def __init__(self, name, **params):
+    def __init__(self, name, pos=None, **params):
         self.processes = []
+        self.pos = pos
         super(TerraNetClient, self).__init__(name, **params)
 
     def terminate(self):
@@ -214,7 +236,8 @@ class TerraNetClient(ipmininet.ipnet.Host):
 
 
 class TerraNetGateway(ipmininet.router.Router):
-    def __init__(self, name, dev, **params):
+    def __init__(self, name, dev, pos=None, **params):
+        self.pos = pos
         super(TerraNetGateway, self).__init__(name, **params)
         # TODO: Make this work, without the disappearing intf afterwards
         # ipmininet.link.PhysicalInterface(dev, node=self) # Adds external interface to node
@@ -227,19 +250,22 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
         prev = None
         for ap in cfg.get_access_points():
             topo.addRouter(ap.short(), cls=DistributionNode, fronthaul_emulator=fh_emulator, wlan=ap.wlan_code,
+                           pos=(float(ap.x), float(ap.y)),
                            config=OpenrConfig, privateDirs=['/tmp', '/var/log'])
 
             if prev is not None:
                 topo.addLink(prev.short(), ap.short())
 
             for sta in filter(lambda s: s.wlan_code == ap.wlan_code, cfg.get_stations()):
-                topo.addRouter(sta.short(), cls=ClientNode, config=OpenrConfig, privateDirs=['/tmp', '/var/log'])
+                topo.addRouter(sta.short(), cls=ClientNode, pos=(float(sta.x), float(sta.y)), config=OpenrConfig,
+                               privateDirs=['/tmp', '/var/log'])
                 topo.addLink(ap.short(), sta.short())
 
                 num_clients = 1  # TODO  For now every station gets three clients, make this configurable
                 for i in range(1, num_clients + 1):
                     client_name = sta.short() + '_C%d' % i
-                    topo.addHost(client_name, cls=TerraNetClient)
+                    topo.addHost(client_name, cls=TerraNetClient,
+                                 pos=(float(sta.x) + ((i - 1) * 8), float(sta.y) + 5 + ((i - 1) * 3)))
                     topo.addLink(sta.short(), client_name)
 
             prev = ap
@@ -248,6 +274,7 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
         # --> idea: take an external intf and drag it into gw namespace. Then make gw a NAT node
         # Problems: no IPv6 at TUB :_( + IPv4 Routing screwed up in OpenR
         topo.addRouter('gw', cls=TerraNetGateway, dev='enp0s3', config=OpenrConfig,
+                       pos=(float(prev.x) + 20, float(prev.y)),
                        privateDirs=['/tmp', '/var/log'])  # Gateway -- Not a DN
         topo.addLink(prev.short(), 'gw')
 
@@ -259,6 +286,48 @@ class TerraNet(ipmininet.ipnet.IPNet):
         super(TerraNet, self).start()
         for client in filter(lambda h: isinstance(h, TerraNetClient), self.hosts):
             client.start()
+
+
+def draw_network(net, path):
+    g = net.topo.convertTo(networkx.MultiGraph)
+    positions = {}
+    color = {}
+    for name in net:
+        n = net[name]
+        positions[n.name] = n.pos
+        if isinstance(n, TerraNetClient):
+            color[n.name] = 'g'
+        elif isinstance(n, ClientNode):
+            color[n.name] = 'orange'
+        else:
+            color[n.name] = 'r'
+
+    nodelist = g.nodes()
+    colorlist = list(map(lambda n: color[n], nodelist))
+
+    networkx.draw(g, pos=positions, nodelist=nodelist, node_color=colorlist, node_size=1e3, with_labels=True)
+    matplotlib.pyplot.savefig(path)
+
+
+def config_metric(cfg_tuple, net):
+    p = configparser.ConfigParser()
+
+    with open(cfg_tuple[1], 'r') as f:
+        p.read_file(f)
+
+    metric = 0.0
+    for sta in filter(lambda s: s.startswith('Node_'), p.sections()):
+        name = sta.split('Node_')[1]
+        tp = p.getfloat(sta, 'throughput')
+
+        try:
+            metric += math.log(tp / 1000) * 1000
+        except ValueError as e:
+            print('{} for {}->tp = {} in {}'.format(e, name, tp, cfg_tuple[1]))
+        # TODO Factor in number of (active) clients
+
+    return metric
+
 
 
 def main(args):
@@ -285,11 +354,28 @@ def main(args):
             zip(cfg_files, out_files))
     )
 
-    limiter = FronthaulEmulator(cfg_tuples)
+    default = list(filter(lambda cfg_tup: False not in
+                                          map(lambda ap: int(ap.max_channel_allowed) - int(ap.min_channel_allowed) == 7,
+                                              cfg_tup[0].get_access_points()),
+                          cfg_tuples))[0]
+
+    limiter = FronthaulEmulator(cfg_tuples, starting_index=cfg_tuples.index(default))
     topo = TerraNetTopo.from_komondor_config(cfg_tuples[0][0], limiter)
     net = TerraNet(topo=topo)
 
     net.start()
+
+    import functools
+    key = functools.partial(config_metric, net=net)
+    best = sorted(cfg_tuples, key=key, reverse=True)[0]
+
+    # Should be built before drawing
+    draw_network(net, '/tmp/topology.png')
+    topo_server = subprocess.Popen(['python2', '-m', 'SimpleHTTPServer', '6666'],
+                                   cwd='/tmp/',
+                                   stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'),
+                                   close_fds=True)
+
 
     iperf_threads = []
     gw = net['gw']
@@ -304,8 +390,17 @@ def main(args):
         iperf_threads.append(p)
         p.start()
 
+    flipswitch = FronthaulEmulatorSwitch('localhost', 4567, limiter, cfg_tuples.index(default), cfg_tuples.index(best))
+    flipswitch.start()
+
     # ipmininet.cli.IPCLI(net)
     raw_input('Press any key to exit')
+
+    print('Stopping...')
+    print('Terminating Web server...')
+    topo_server.terminate()
+
+    print('Stopping Iperf client processes...')
 
     for t in iperf_threads:
         t.running = False
@@ -313,6 +408,13 @@ def main(args):
     for t in iperf_threads:
         t.join()
 
+    print('Stopping flipswitch...')
+
+    flipswitch.running = False
+    flipswitch.join()
+    s.close()
+
+    print('Stopping mininet...')
     net.stop()
 
 
@@ -353,6 +455,35 @@ class PseudoMeterer(threading.Thread):
                     with self.lock:
                         self.socket.send(topic, flags=zmq.SNDMORE)
                         self.socket.send(payload)
+
+
+class FronthaulEmulatorSwitch(threading.Thread):
+    def __init__(self, hostname, sub_port, fh_emulator, default, best):
+        super(FronthaulEmulatorSwitch, self).__init__()
+        self.sub_port = sub_port
+        self.hostname = hostname
+        self.running = False
+        self.fh_emulator = fh_emulator
+        self.default = default
+        self.best = best
+
+    def run(self):
+        self.running = True
+        ctx = zmq.Context()
+        sub = ctx.socket(zmq.SUB)
+        sub.setsockopt(zmq.SUBSCRIBE, 'controller')
+        sub.connect('tcp://{}:{}'.format(self.hostname, self.sub_port))
+
+        while self.running:
+            rlist, _, _ = zmq.select([sub], [], [], 3.0)
+            if sub in rlist:
+                topic, content = sub.recv_multipart()
+                with self.fh_emulator.lock:
+                    index = self.best if content == 'true' else self.default
+                    self.fh_emulator.current_tuple = self.fh_emulator.cfg_tuples[index]
+                    self.fh_emulator.apply_global_config(self.fh_emulator.current_tuple)
+
+        sub.close()
 
 
 if __name__ == '__main__':
