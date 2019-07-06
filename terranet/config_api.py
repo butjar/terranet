@@ -48,15 +48,21 @@ class ConfigAPI(Flask):
                    "max_channel_allowed" ]
         payload = request.json
         if not payload:
+            # TODO add error message
             abort(400)
         if all(param in payload for param in params):
             primary_channel = payload["primary_channel"]
             min_channel_allowed = payload["min_channel_allowed"]
             max_channel_allowed = payload["max_channel_allowed"]
-            self.node.switch_channel(primary_channel,
-                                     min_channel_allowed,
-                                     max_channel_allowed)
-            return ""
+            (success, message) = self.node.switch_channel(primary_channel,
+                                                          min_channel_allowed,
+                                                          max_channel_allowed)
+            if success:
+                return "{}".format(message)
+            else:
+                # TODO add error message
+                abort(400)
         else:
+            # TODO add error message
             abort(400)
 

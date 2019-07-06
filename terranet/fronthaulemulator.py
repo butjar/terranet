@@ -40,6 +40,9 @@ class FronthaulEmulator(object):
         info("FronthaulEmulator: Changing config of node {}.\n"
              .format(evt.node.name))
         info("FronthaulEmulator: New config {}\n".format(evt.update))
+        evt.result = True
+        evt.message = "OK\n"
+        evt.set()
 
     def handle_channel_switch(self, evt):
         info("FronthaulEmulator: Node {} triggered channel switch.\n"
@@ -50,19 +53,33 @@ class FronthaulEmulator(object):
             for cn in connected_cns:
                 cn.update_komondor_config(evt.new_channel_config)
             self.apply_network_config()
+            evt.result = True
+            evt.message = "New config file: {}\n".format(self.current_file)
+            evt.set()
         except RuntimeError as err:
-            warn("FronthaulEmulator: Error {}".format(err))
-            warn("FronthaulEmulator: Rolling back to previos config."
-                 .format(err))
+            error_message = """FronthaulEmulator: Error {}
+                               Rolling back to previos config: {}.\n"""\
+                            .format(err,self.current_file)
+            warn(error_message)
             for node in (connected_cns + [dn5_60]):
                 node.update_komondor_config(evt.old_channel_config)
             self.apply_network_config()
+            evt.result = False
+            evt.message = error_message
+            evt.set()
 
     def handle_registration(self, evt):
         info("FronthaulEmulator: Registering node {}\n".format(evt.node.name))
+        evt.result = True
+        evt.message = "OK\n"
+        evt.set()
 
     def handle_cancel_registration(self, evt):
-        info("FronthaulEmulator: Unregistering node {}\n".format(evt.node.name))
+        info("FronthaulEmulator: Unregistering node {}\n"\
+             .format(evt.node.name))
+        evt.result = True
+        evt.message = "OK\n"
+        evt.set()
 
     def read_configs(self, cfg_dir, cls=KomondorConfig):
         configs = dict()
@@ -84,7 +101,7 @@ class FronthaulEmulator(object):
         new_config = self.build_terranet_config()
         config_tuple = self.find_kommondor_config(new_config)
         if not config_tuple:
-            warn("No config found for new network configs.")
+            warn("No config found for new network configs.\n")
             raise RuntimeError("Current config not found.")
         else:
             (file_name, config) = config_tuple

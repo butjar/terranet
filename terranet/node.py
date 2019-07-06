@@ -1,4 +1,5 @@
 import threading
+from threading import Thread
 from ipmininet.router import Router, ProcessHelper
 from ipmininet.router.config.base import RouterConfig
 from .config_api import ConfigAPI
@@ -49,23 +50,29 @@ class Terranode(Router):
         self._komondor_config.update(config_dict)
         evt = KomondorConfigChangeEvent(self, config_dict)
         self.notify_fronthaulemulator(evt)
+        return (evt.result, evt.message)
 
     def register_fronthaulemulator(self, fronthaulemulator):
         self.fronthaulemulator = fronthaulemulator
         evt = FronthaulEmulatorRegistrationEvent(self)
         self.notify_fronthaulemulator(evt)
+        return (evt.result, evt.message)
 
     def unregister_fronthaulemulator(self):
         self.fronthaulemulator = None
         evt = FronthaulEmulatorCancelRegistrationEvent(self)
+        self.notify_fronthaulemulator(evt)
+        return (evt.result, evt.message)
 
     def clear_changed(self):
         self.has_changed = False
 
-    def notify_fronthaulemulator(self, evt):
+    def notify_fronthaulemulator(self, evt, wait=True):
         self.has_changed = True
         if self.fronthaulemulator:
             self.fronthaulemulator.update(evt)
+        if wait:
+            evt.wait()
         self.clear_changed()
 
 
@@ -113,7 +120,7 @@ class DN5_60(Terranode):
             api = ConfigAPI(self.name, self)
             kwargs = { "host": "::",
                        "port": 80 }
-            api_thread = threading.Thread(target=api.run, kwargs=kwargs)
+            api_thread = Thread(target=api.run, kwargs=kwargs)
             api_thread.daemon=True
             api_thread.start()
 
@@ -141,17 +148,44 @@ class DN5_60(Terranode):
                                  old_channel_cfg,
                                  new_channel_cfg)
         self.notify_fronthaulemulator(evt)
+        return (evt.result, evt.message)
 
 
-class KomondorConfigChangeEvent(object):
+class TerranetEvent(object):
+    def __init__(self, cls=threading.Event):
+        self._event = cls()
+        self.result = None
+        self.message = None
+
+    @property
+    def event(self):
+        return self._event
+
+    def is_set(self):
+        return self._event.is_set()
+
+    isSet = is_set
+
+    def set(self):
+        self._event.set()
+
+    def clear(self):
+        self._event.clear()
+
+    def wait(self, timeout=None):
+        self._event.wait(timeout=timeout)
+
+
+class KomondorConfigChangeEvent(TerranetEvent):
     def __init__(self,
                  node,
                  update):
         self.node = node
         self.update = update
+        super(KomondorConfigChangeEvent, self).__init__()
 
 
-class ChannelSwitchEvent(object):
+class ChannelSwitchEvent(TerranetEvent):
     def __init__(self,
                  node,
                  old_channel_config,
@@ -159,16 +193,19 @@ class ChannelSwitchEvent(object):
         self.node = node
         self.old_channel_config = old_channel_config
         self.new_channel_config = new_channel_config
+        super(ChannelSwitchEvent, self).__init__()
 
 
-class FronthaulEmulatorRegistrationEvent(object):
+class FronthaulEmulatorRegistrationEvent(TerranetEvent):
     def __init__(self,
                  node):
         self.node = node
+        super(FronthaulEmulatorRegistrationEvent, self).__init__()
 
 
-class FronthaulEmulatorCancelRegistrationEvent(object):
+class FronthaulEmulatorCancelRegistrationEvent(TerranetEvent):
     def __init__(self,
                  node):
         self.node = node
+        super(FronthaulEmulatorCancelRegistrationEvent, self).__init__()
 
