@@ -1,6 +1,9 @@
+import threading
 from ipmininet.router import Router, ProcessHelper
 from ipmininet.router.config.base import RouterConfig
 from .config_api import ConfigAPI
+
+import netns
 
 class OpenrConfig(RouterConfig):
     """A simple config with only a OpenR daemon"""
@@ -102,6 +105,17 @@ class DN5_60(Terranode):
                                      config=config,
                                      komondor_config=komondor_config,
                                      *args, **kwargs)
+        self.run_config_api_thread()
+
+    def run_config_api_thread(self):
+        nspid = self.pid
+        with netns.NetNS(nspid=nspid):
+            api = ConfigAPI(self.name, self)
+            kwargs = { "host": "::",
+                       "port": 80 }
+            api_thread = threading.Thread(target=api.run, kwargs=kwargs)
+            api_thread.daemon=True
+            api_thread.start()
 
     def get_channel_config(self):
         channel_cfg = None
