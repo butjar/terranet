@@ -1,11 +1,11 @@
 import os
 from mininet.log import info, warn
 from configparser import ConfigParser
-from config import KomondorConfig, KomondorResult
-from node import (KomondorConfigChangeEvent,
-                 ChannelSwitchEvent,
-                 FronthaulEmulatorRegistrationEvent,
-                 FronthaulEmulatorCancelRegistrationEvent)
+from .config import KomondorConfig, KomondorResult
+from .node import (KomondorConfigChangeEvent,
+                   ChannelSwitchEvent,
+                   FronthaulEmulatorRegistrationEvent,
+                   FronthaulEmulatorCancelRegistrationEvent)
 
 class FronthaulEmulator(object):
     def __init__(self,

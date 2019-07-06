@@ -1,5 +1,6 @@
 from ipmininet.router import Router, ProcessHelper
 from ipmininet.router.config.base import RouterConfig
+from .config_api import ConfigAPI
 
 class OpenrConfig(RouterConfig):
     """A simple config with only a OpenR daemon"""

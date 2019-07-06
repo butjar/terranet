@@ -1,7 +1,7 @@
 from ipmininet.ipnet import IPNet
-from fronthaulemulator import FronthaulEmulator
-from link import Terralink
-from node import Terranode, CN, DN60, DN5_60
+from .fronthaulemulator import FronthaulEmulator
+from .link import Terralink
+from .node import Terranode, CN, DN60, DN5_60
 
 class Terranet(IPNet):
     def __init__(self,

@@ -1,7 +1,7 @@
 from ipmininet.iptopo import IPTopo
 
-from node import CN, DN60, DN5_60
-from link import Wifi5GHzLink, Wifi60GHzLink
+from .node import CN, DN60, DN5_60
+from .link import Wifi5GHzLink, Wifi60GHzLink
 
 class Terratopo(IPTopo):
     def __init__(self, *args, **kwargs):
