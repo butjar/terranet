@@ -1,68 +1,55 @@
 #!/usr/bin/env python
 from mininet.cli import CLI
-from mininet.log import lg, info
-from mininet.link import TCLink
+from mininet.log import setLogLevel, info
 from mininet.node import OVSBridge
 
-from ipmininet.ipnet import IPNet
-from ipmininet.iptopo import IPTopo
 from ipmininet.cli import IPCLI
 from ipmininet.router.config import RouterConfig, OpenrDaemon, Openr
 
+from terranet.config import KomondorConfig
+from terranet.net import Terranet
+from terranet.topo import Terratopo
+from terranet.link import Terralink, Wifi5GHzLink, Wifi60GHzLink
 
-class OpenrConfig(RouterConfig):
-    """A simple config with only a OpenR daemon"""
-    def __init__(self, node, *args, **kwargs):
-        defaults = {
-                     "redistribute_ifaces": "lo",
-                     "iface_regex_include": ".*",
-                     "enable_v4": True
-                   }
+komondor_config = KomondorConfig("{{ komondor_config.cfg_file }}")
 
-        super(OpenrConfig, self).__init__(node,
-                                          daemons=((Openr, defaults),),
-                                          *args, **kwargs)
-
-class SimpleOpenrNet(IPTopo):
+class SimpleOpenrNet(Terratopo):
     def build(self, *args, **kwargs):
 
-        # DNs
+        # Add DNs
         {%- import 'dn.j2' as dn_tmpl %}
-        {%- for dn in config.get_access_points() %}
-        {{ dn_tmpl.input(dn, 's{}'.format(loop.index))|indent(8) }}
+        {%- for cfg in komondor_config.access_points() %}
+        {{ dn_tmpl.input(cfg)|indent(8) }}
         {% endfor %}
 
-        # CNs
+        # Add CNs
         {%- import 'cn.j2' as cn_tmpl %}
-        {%- for cn in config.get_stations() %}
-        {{ cn_tmpl.input(cn)|indent(8) }}
+        {%- for cfg in komondor_config.stations() %}
+        {{ cn_tmpl.input(cfg)|indent(8) }}
+        {% endfor %}
+
+        # Add WiFi 5GHz Links
+        {%- import 'link.j2' as link_tmpl %}
+        {%- for (node1, node2) in komondor_config.wifi5GHz_links() %}
+        {{ link_tmpl.input(node1, node2, "Wifi5GHzLink")|indent(8) }}
         {%- endfor %}
 
-        # Links
+        # Add WiFi 5GHz Links
         {%- import 'link.j2' as link_tmpl %}
-        {%- for (node1, node2) in config.get_links() %}
-        {{ link_tmpl.input(node1, node2)|indent(8) }}
+        {%- for (node1, node2) in komondor_config.wifi60GHz_links() %}
+        {{ link_tmpl.input(node1, node2, "Wifi60GHzLink")|indent(8) }}
         {%- endfor %}
 
         super(SimpleOpenrNet, self).build(*args, **kwargs)
 
-    def addRouter_openr(self, name):
-        return self.addRouter(name, config=OpenrConfig,
-                              privateDirs=['/tmp', '/var/log'])
 
 if __name__ == '__main__':
+    setLogLevel( 'info' )
     net = SimpleOpenrNet()
-    net = IPNet(topo=SimpleOpenrNet(),
-                link=TCLink,
-                switch=OVSBridge)
-    {%- for cn in config.get_stations() %}
-    {%- set short_name = cn.name|replace("Node_", "") %}
-    {%- for client in range(cn.num_clients|int) %}
-    {%- set client_name = short_name ~ "_C" ~ loop.index %}
-    net["{{ client_name }}"].popen("iperf -s")
-    {%- endfor %}
-    {%- endfor %}
-
+    system_config = dict(komondor_config.system())
+    net = Terranet(topo=SimpleOpenrNet(),
+                   switch=OVSBridge,
+                   system_config=system_config)
     net.start()
     IPCLI(net)
     net.stop()

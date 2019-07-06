@@ -1,7 +1,0 @@
-{%- import 'system.j2' as system_tmpl %}
-{{ system_tmpl.input(config.system) }}
-
-{%- import 'node.j2' as node_tmpl %}
-{% for node in config.nodes %}
-{{ node_tmpl.input(node) }}
-{% endfor %}
