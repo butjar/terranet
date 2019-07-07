@@ -109,8 +109,18 @@ class FronthaulEmulator(object):
         self.current_file = file_name
         self.current_config = config
         self.current_result = self.komondor_results[file_name]
+        self.apply_results()
         info("FronthaulEmulator: Network config {} successfully applied.\n"
              .format(config.cfg_file))
+
+    def apply_results(self):
+        for dn5_60 in self.net.dn5_60s():
+            for cn in self.net.get_connected_cns(dn5_60):
+                for (intf, _) in dn5_60.connectionsTo(cn):
+                    result = self.read_result(cn)
+                    bw = int(result.getint("throughput") / 1000000)
+                    delay = "{}ms".format(int(result.getfloat("delay")))
+                    intf.config(bw=bw, delay=delay)
 
     def build_terranet_config(self):
         config_dict = { "System": self.system_config }
@@ -131,4 +141,12 @@ class FronthaulEmulator(object):
             if cfg == config:
                 return (name, cfg)
         return None
+
+    def read_result(self, node):
+        section_name = "Node_{}".format(node.name)
+        return self.current_result[section_name]
+
+    def read_result(self, node):
+        section_name = "Node_{}".format(node.name)
+        return self.current_result[section_name]
 

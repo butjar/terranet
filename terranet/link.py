@@ -1,7 +1,6 @@
-from ipmininet.link import IPLink
-from mininet.link import TCIntf
+from mininet.link import TCIntf, TCLink
 
-class Terralink(IPLink):
+class Terralink(TCLink):
     def __init__(self,
                  node1,
                  node2,
@@ -21,7 +20,7 @@ class Wifi60GHzLink(Terralink):
                                             intf=intf, *args, **kwargs)
 
 
-class Wifi5GHzLink(IPLink):
+class Wifi5GHzLink(Terralink):
     def __init__(self,
                  node1,
                  node2,
