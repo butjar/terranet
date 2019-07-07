@@ -1,18 +1,29 @@
+from mininet.link import TCLink, TCIntf
+from mininet.node import OVSSwitch
 from ipmininet.ipnet import IPNet
 from .fronthaulemulator import FronthaulEmulator
 from .link import Terralink
 from .node import Terranode, CN, DN60, DN5_60
+from .router_config import OpenrConfig
 
 class Terranet(IPNet):
     def __init__(self,
                  fronthaulemulator=FronthaulEmulator(),
-                 link=Terralink,
                  system_config={},
+                 router=DN60,
+                 config=OpenrConfig,
+                 link=Terralink,
+                 intf=TCIntf,
+                 switch=OVSSwitch,
                  *args, **kwargs):
         fronthaulemulator.net=self
         fronthaulemulator.system_config=system_config
         self.fronthaulemulator = fronthaulemulator
-        super(Terranet, self).__init__(link=link,
+        super(Terranet, self).__init__(router=router,
+                                       config=config,
+                                       link=link,
+                                       intf=intf,
+                                       switch=switch,
                                        *args, **kwargs)
 
     def build(self):

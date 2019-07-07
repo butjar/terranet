@@ -1,11 +1,24 @@
 from ipmininet.iptopo import IPTopo
+from .router_config import OpenrConfig, TerranetRouterDescription
 
 from .node import CN, DN60, DN5_60
 from .link import Wifi5GHzLink, Wifi60GHzLink
 
+
 class Terratopo(IPTopo):
     def __init__(self, *args, **kwargs):
         super(Terratopo, self).__init__(*args, **kwargs)
+
+    def addDaemon(self, router, daemon, default_cfg_class=OpenrConfig,
+                  cfg_daemon_list="daemons", **daemon_params):
+        super(Terratopo, self).addDaemon(router, daemon,
+                default_cfg_class=default_cfg_class,
+                cfg_daemon_list=cfg_daemon_list, **daemon_params)
+
+    def addRouter(self, name, **kwargs):
+        return TerranetRouterDescription(self.addNode(name,
+                                                      isRouter=True,
+                                                      **kwargs), self)
 
     def addCN(self, name, **opts):
         return super(Terratopo, self).addRouter(name, isCN=True, cls=CN,

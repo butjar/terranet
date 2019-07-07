@@ -13,7 +13,7 @@ from terranet.link import Terralink, Wifi5GHzLink, Wifi60GHzLink
 
 komondor_config = KomondorConfig("{{ komondor_config.cfg_file }}")
 
-class SimpleOpenrNet(Terratopo):
+class SimpleTerratopo(Terratopo):
     def build(self, *args, **kwargs):
 
         # Add DNs
@@ -40,14 +40,14 @@ class SimpleOpenrNet(Terratopo):
         {{ link_tmpl.input(node1, node2, "Wifi60GHzLink")|indent(8) }}
         {%- endfor %}
 
-        super(SimpleOpenrNet, self).build(*args, **kwargs)
+        super(SimpleTerratopo, self).build(*args, **kwargs)
 
 
 if __name__ == '__main__':
     setLogLevel( 'info' )
-    net = SimpleOpenrNet()
     system_config = dict(komondor_config.system())
-    net = Terranet(topo=SimpleOpenrNet(),
+    topo = SimpleTerratopo()
+    net = Terranet(topo=topo,
                    switch=OVSBridge,
                    system_config=system_config)
     net.start()

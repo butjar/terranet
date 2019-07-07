@@ -1,24 +1,10 @@
 import threading
 from threading import Thread
 from ipmininet.router import Router, ProcessHelper
-from ipmininet.router.config.base import RouterConfig
+from .router_config import OpenrConfig
 from .config_api import ConfigAPI
 
 import netns
-
-class OpenrConfig(RouterConfig):
-    """A simple config with only a OpenR daemon"""
-    def __init__(self, node, *args, **kwargs):
-        defaults = {
-                     "redistribute_ifaces": "lo",
-                     "iface_regex_include": ".*",
-                     "enable_v4": True
-                   }
-
-        super(OpenrConfig, self).__init__(node,
-                                          daemons=((Openr, defaults),),
-                                          *args, **kwargs)
-
 
 class Terranode(Router):
     def __init__(self,
