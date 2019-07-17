@@ -40,12 +40,12 @@ class OpenrConfig(ipcfg.RouterConfig):
 
 
 class FronthaulEmulator:
-    def __init__(self, cfg_tuples, starting_index=0):
+    def __init__(self, cfg_tuples, pub_port, starting_index=0):
         self.cfg_tuples = cfg_tuples
         self.current_tuple = cfg_tuples[starting_index]
         self.lock = threading.Lock()
         self.registered_dns = []
-        self.pub_port = 4568
+        self.pub_port = pub_port
 
         self.ctx = zmq.Context()
         self.pub = self.ctx.socket(zmq.PUB)
@@ -321,13 +321,12 @@ def config_metric(cfg_tuple, net):
         tp = p.getfloat(sta, 'throughput')
 
         try:
-            metric += math.log(tp / 1000) * 1000
+            metric += math.log(tp)
         except ValueError as e:
             print('{} for {}->tp = {} in {}'.format(e, name, tp, cfg_tuple[1]))
         # TODO Factor in number of (active) clients
 
     return metric
-
 
 
 def main(args):
@@ -359,7 +358,7 @@ def main(args):
                                               cfg_tup[0].get_access_points()),
                           cfg_tuples))[0]
 
-    limiter = FronthaulEmulator(cfg_tuples, starting_index=cfg_tuples.index(default))
+    limiter = FronthaulEmulator(cfg_tuples, args.config_port,starting_index=cfg_tuples.index(default))
     topo = TerraNetTopo.from_komondor_config(cfg_tuples[0][0], limiter)
     net = TerraNet(topo=topo)
 
@@ -371,7 +370,7 @@ def main(args):
 
     # Should be built before drawing
     draw_network(net, '/tmp/topology.png')
-    topo_server = subprocess.Popen(['python2', '-m', 'SimpleHTTPServer', '6666'],
+    topo_server = subprocess.Popen(['python2', '-m', 'SimpleHTTPServer', '{}'.format(args.topo_port)],
                                    cwd='/tmp/',
                                    stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'),
                                    close_fds=True)
@@ -383,7 +382,7 @@ def main(args):
     zmq_lock = threading.Lock()
     ctx = zmq.Context()
     s = ctx.socket(zmq.PUB)
-    s.bind('tcp://127.0.0.1:5556')
+    s.bind('tcp://127.0.0.1:{}'.format(args.metering_port))
 
     for client in filter(lambda h: isinstance(h, TerraNetClient), net.hosts):
         p = PseudoMeterer(gw, client, s, zmq_lock)
@@ -394,28 +393,30 @@ def main(args):
     flipswitch.start()
 
     # ipmininet.cli.IPCLI(net)
-    raw_input('Press any key to exit')
 
-    print('Stopping...')
-    print('Terminating Web server...')
-    topo_server.terminate()
+    try:
+        raw_input('Press any key to exit')
+    finally:
+        print('Stopping...')
+        print('Terminating Web server...')
+        topo_server.terminate()
 
-    print('Stopping Iperf client processes...')
+        print('Stopping Iperf client processes...')
 
-    for t in iperf_threads:
-        t.running = False
+        for t in iperf_threads:
+            t.running = False
 
-    for t in iperf_threads:
-        t.join()
+        for t in iperf_threads:
+            t.join()
 
-    print('Stopping flipswitch...')
+        print('Stopping flipswitch...')
 
-    flipswitch.running = False
-    flipswitch.join()
-    s.close()
+        flipswitch.running = False
+        flipswitch.join()
+        s.close()
 
-    print('Stopping mininet...')
-    net.stop()
+        print('Stopping mininet...')
+        net.stop()
 
 
 class PseudoMeterer(threading.Thread):
@@ -436,7 +437,10 @@ class PseudoMeterer(threading.Thread):
             if ip6 is None:
                 time.sleep(3)
                 continue
-            p = self.src.popen('iperf -y c -V -t 300 -i 5 -c %s' % ip6)
+            # FIXME:
+            # iperf always returns a summary of the whole run as last entry, which sometimes looks like a sudden
+            # drop in throughput, if e.g. the config was changed during the run.
+            p = self.src.popen('iperf -y c -V -t 3000 -i 5 -c %s' % ip6)
 
             while p.poll() is None and self.running:
                 rlist, _, _ = select.select([p.stdout, p.stderr], [], [], 7)
@@ -490,5 +494,19 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('cfg_path', help='Path to topology files for komondor simulation')
     parser.add_argument('out_path', help='Path to the simulation results')
+    parser.add_argument('-t', '--topo-port',
+                        help='Set port of web server serving the topology image. Defaults to 6666.',
+                        type=int,
+                        default=6666)
+    parser.add_argument('-m', '--metering-port',
+                        help='Set port for publishing flow metering info. Defaults to 5556',
+                        type=int,
+                        default=5556)
+    parser.add_argument('-c', '--config-port',
+                        help='Set port for publishing configuration changes. Defaults to 4568',
+                        type=int,
+                        default=4568)
+
     arguments = parser.parse_args()
+
     main(arguments)
