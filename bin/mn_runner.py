@@ -180,7 +180,7 @@ class DistributionNode(ipmininet.router.Router):
         self.cmdPrint(cmd)  # Just to make sure. This is lazy. I know.
 
     def handle_ap_daemon(self):
-        self.ap_daemon = self.popen('python ap_daemon.py')
+        self.ap_daemon = self.popen('python -m terranet.ap_daemon')
         out = self.ap_daemon.stdout
         err = self.ap_daemon.stderr
         print('Starting AP daemon ({pid})'.format(pid=self.ap_daemon.pid))
@@ -251,14 +251,14 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
         for ap in cfg.get_access_points():
             topo.addRouter(ap.short(), cls=DistributionNode, fronthaul_emulator=fh_emulator, wlan=ap.wlan_code,
                            pos=(float(ap.x), float(ap.y)),
-                           config=OpenrConfig, privateDirs=['/tmp', '/var/log'])
+                           config=OpenrConfig, )#privateDirs=['/tmp', '/var/log'])
 
             if prev is not None:
                 topo.addLink(prev.short(), ap.short())
 
             for sta in filter(lambda s: s.wlan_code == ap.wlan_code, cfg.get_stations()):
                 topo.addRouter(sta.short(), cls=ClientNode, pos=(float(sta.x), float(sta.y)), config=OpenrConfig,
-                               privateDirs=['/tmp', '/var/log'])
+                               )#privateDirs=['/tmp', '/var/log'])
                 topo.addLink(ap.short(), sta.short())
 
                 num_clients = 1  # TODO  For now every station gets three clients, make this configurable
@@ -275,7 +275,7 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
         # Problems: no IPv6 at TUB :_( + IPv4 Routing screwed up in OpenR
         topo.addRouter('gw', cls=TerraNetGateway, dev='enp0s3', config=OpenrConfig,
                        pos=(float(prev.x) + 20, float(prev.y)),
-                       privateDirs=['/tmp', '/var/log'])  # Gateway -- Not a DN
+                       )#privateDirs=['/tmp', '/var/log'])  # Gateway -- Not a DN
         topo.addLink(prev.short(), 'gw')
 
         return topo
