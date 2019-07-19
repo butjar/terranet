@@ -123,6 +123,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+.idea
+
 # Examples
 examples/160MHz/cfg/*.cfg
 examples/160MHz/out/*.cfg
