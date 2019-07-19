@@ -15,7 +15,11 @@ setup(
         "whichcraft",
         "future",
         "mininet",
-        "ipmininet"
+        "ipmininet",
+        "networkx",
+        "zmq",
+        "matplotlib",
+        "progress"
     ],
     include_package_data=True,
     package_data={
