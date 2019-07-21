@@ -1,3 +1,5 @@
+import time
+
 from mininet.link import TCLink, TCIntf
 from mininet.node import OVSSwitch
 from ipmininet.ipnet import IPNet
@@ -35,6 +37,8 @@ class Terranet(IPNet):
 
     def start(self):
         super(Terranet, self).start()
+        # FIXME Dirty fix, wait for the interfaces to be ready
+        time.sleep(10)
         for server in self.get_iperf_download_servers():
             server.run_iperf_server()
         for client in self.get_iperf_download_clients():
