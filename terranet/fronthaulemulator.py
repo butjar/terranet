@@ -120,7 +120,7 @@ class FronthaulEmulator(object):
                     result = self.read_result(cn)
                     bw = int(result.getint("throughput") / 1000000)
                     delay = "{}ms".format(int(result.getfloat("delay")))
-                    intf.config(bw=bw, delay=delay)
+                    intf.config(bw=bw, delay=delay, use_tbf=True)
 
     def build_terranet_config(self):
         config_dict = { "System": self.system_config }
