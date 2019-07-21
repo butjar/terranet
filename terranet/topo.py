@@ -16,21 +16,18 @@ class Terratopo(IPTopo):
                 cfg_daemon_list=cfg_daemon_list, **daemon_params)
 
     def addRouter(self, name, **kwargs):
-        return TerranetRouterDescription(self.addNode(name,
-                                                      isRouter=True,
-                                                      **kwargs), self)
+        router = self.addNode(name, isRouter=True, **kwargs)
+        return TerranetRouterDescription(router, self)
 
     def addCN(self, name, **opts):
-        return super(Terratopo, self).addRouter(name, isCN=True, cls=CN,
-                                                **opts)
+        return self.addRouter(name, isCN=True, cls=CN, **opts)
 
     def addDN60(self, name, **opts):
-        return super(Terratopo, self).addRouter(name, isDN60=True, cls=DN60,
-                                                **opts)
+        return self.addRouter(name, isDN60=True, cls=DN60, **opts)
 
     def addDN5_60(self, name, **opts):
-        return super(Terratopo, self).addRouter(name, isDN5_60=True,
-                                                cls=DN5_60, **opts)
+        return self.addRouter(name, isDN5_60=True, cls=DN5_60, **opts)
+
     def addGateway(self, name, **opts):
         return self.addSwitch(name, cls=Gateway, **opts)
 
