@@ -215,9 +215,9 @@ class IperfDownloadServer(IperfHost):
         if not bind_address:
             bind_address = self.intfList()[0].ip6
         # --logfile option requires iperf3 >= 3.1
-        cmd = "{} -s {} -B {} --logfile {}".format(bin, args, bind_address,
-                self.logfile)
-        p = self.popen(cmd)
+        cmd = """{bin} -s {args} -B {bind} --logfile {log}""".format(
+                bin=bin, args=args, bind=bind_address, log=self.logfile)
+        p = self.popen(cmd, shell=True)
         self.iperf_pid = p.pid
         return p
 
