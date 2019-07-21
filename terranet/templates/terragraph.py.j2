@@ -35,7 +35,7 @@ class SimpleTerratopo(Terratopo):
         {{ link_tmpl.input(node1, node2, "Wifi5GHzLink")|indent(8) }}
         {%- endfor %}
 
-        # Add WiFi 5GHz Links
+        # Add WiFi 60GHz Links
         {%- import 'link.j2' as link_tmpl %}
         {%- for (node1, node2) in komondor_config.wifi60GHz_links() %}
         {{ link_tmpl.input(node1, node2, "Wifi60GHzLink")|indent(8) }}
