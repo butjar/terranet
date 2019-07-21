@@ -1,5 +1,4 @@
-import threading
-from threading import Thread
+from threading import Thread, Event
 from ipmininet.router import Router, ProcessHelper
 
 from mininet.node import Host, OVSBridge
@@ -146,7 +145,7 @@ class Gateway(OVSBridge):
 
 
 class TerranetEvent(object):
-    def __init__(self, cls=threading.Event):
+    def __init__(self, cls=Event):
         self._event = cls()
         self.result = None
         self.message = None
