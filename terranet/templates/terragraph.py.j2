@@ -3,6 +3,7 @@ from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 from mininet.node import OVSBridge
 
+from ipmininet.link import IPLink
 from ipmininet.cli import IPCLI
 from ipmininet.router.config import RouterConfig, OpenrDaemon, Openr
 
@@ -40,6 +41,10 @@ class SimpleTerratopo(Terratopo):
         {{ link_tmpl.input(node1, node2, "Wifi60GHzLink")|indent(8) }}
         {%- endfor %}
 
+        # Add GW switch
+        {%- import 'gw.j2' as gw_tmpl %}
+        {{ gw_tmpl.input("gw", komondor_config)|indent(8) }}
+
         super(SimpleTerratopo, self).build(*args, **kwargs)
 
 
@@ -48,7 +53,6 @@ if __name__ == '__main__':
     system_config = dict(komondor_config.system())
     topo = SimpleTerratopo()
     net = Terranet(topo=topo,
-                   switch=OVSBridge,
                    system_config=system_config)
     net.start()
     IPCLI(net)

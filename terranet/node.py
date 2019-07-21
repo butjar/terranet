@@ -1,6 +1,9 @@
 import threading
 from threading import Thread
 from ipmininet.router import Router, ProcessHelper
+
+from mininet.node import Host, OVSBridge
+
 from .router_config import OpenrConfig
 from .config_api import ConfigAPI
 
@@ -135,6 +138,11 @@ class DN5_60(Terranode):
                                  new_channel_cfg)
         self.notify_fronthaulemulator(evt)
         return (evt.result, evt.message)
+
+
+class Gateway(OVSBridge):
+    def __init__(self, name, **params):
+        super(Gateway, self).__init__(name, **params)
 
 
 class TerranetEvent(object):

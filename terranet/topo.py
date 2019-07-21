@@ -1,7 +1,7 @@
 from ipmininet.iptopo import IPTopo
 from .router_config import OpenrConfig, TerranetRouterDescription
 
-from .node import CN, DN60, DN5_60
+from .node import CN, DN60, DN5_60, Gateway
 from .link import Wifi5GHzLink, Wifi60GHzLink
 
 
@@ -31,6 +31,9 @@ class Terratopo(IPTopo):
     def addDN5_60(self, name, **opts):
         return super(Terratopo, self).addRouter(name, isDN5_60=True,
                                                 cls=DN5_60, **opts)
+    def addGateway(self, name, **opts):
+        return self.addSwitch(name, cls=Gateway, **opts)
+
 
     def isCN(self, node):
         return self.isNodeType(node, 'isCN')
