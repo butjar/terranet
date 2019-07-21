@@ -72,9 +72,9 @@ class CN(Terranode):
                  komondor_config=None,
                  *args, **kwargs):
         super(CN, self).__init__(name,
-                                   config=config,
-                                   komondor_config=komondor_config,
-                                   *args, **kwargs)
+                                 config=config,
+                                 komondor_config=komondor_config,
+                                 *args, **kwargs)
 
 
 class DN60(Terranode):
