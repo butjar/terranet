@@ -1,7 +1,8 @@
 from ipmininet.iptopo import IPTopo
 from .router_config import OpenrConfig, TerranetRouterDescription
 
-from .node import CN, DN60, DN5_60, Gateway
+from .node import (CN, DN60, DN5_60, Gateway, IperfDownloadClient,
+                   IperfDownloadServer)
 from .link import Wifi5GHzLink, Wifi60GHzLink
 
 
@@ -31,6 +32,12 @@ class Terratopo(IPTopo):
     def addGateway(self, name, **opts):
         return self.addSwitch(name, cls=Gateway, **opts)
 
+    def addIperfDownloadClient(self, name, server_name=None, **opts):
+        return self.addHost(name, cls=IperfDownloadClient,
+                server_name=server_name, **opts)
+
+    def addIperfDownloadServer(self, name, **opts):
+        return self.addHost(name, cls=IperfDownloadServer, **opts)
 
     def isCN(self, node):
         return self.isNodeType(node, 'isCN')

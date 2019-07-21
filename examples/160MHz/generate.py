@@ -37,7 +37,7 @@ def system_config():
           "capture_effect_model": 1 }
     )
 
-def node_config(type, wlan_code, coordinates, channels, num_clients=0):
+def node_config(type, wlan_code, coordinates, channels):
     return collections.OrderedDict(
         { "type": type,
           "wlan_code": wlan_code,
@@ -64,8 +64,7 @@ def node_config(type, wlan_code, coordinates, channels, num_clients=0):
           "lambda": 10000,
           "ieee_protocol": 1,
           "traffic_load": 1000,
-          "node_env": "outdoor",
-          "num_clients": num_clients }
+          "node_env": "outdoor" }
     )
 
 def generate_config(networks, channels):
@@ -82,8 +81,7 @@ def generate_config(networks, channels):
         channels_cfg = { "primary_channel": min_ch,
                          "min_channel_allowed": min_ch,
                          "max_channel_allowed": max_ch}
-        config[name] = node_config(0, wlan_code, coordinates, channels_cfg,
-                                   num_clients=3)
+        config[name] = node_config(0, wlan_code, coordinates, channels_cfg)
 
         num_stas = len(net["stas"])
         for sta_idx, sta in enumerate(range(num_stas)):

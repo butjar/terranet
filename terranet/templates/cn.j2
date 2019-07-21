@@ -2,10 +2,4 @@
 {%- set short_name = config.name|replace("Node_", "") -%}
 {{ short_name }} = self.addCN("{{ short_name }}",
     komondor_config=dict(komondor_config["{{ config.name }}"]))
-# {{ short_name }} Clients
-{%- for client in range(config.num_clients|int) %}
-{% set client_name = short_name ~ "_C" ~ loop.index -%}
-{{ client_name }} = self.addNode("{{ client_name }}")
-self.addLink({{ short_name }}, {{ client_name }})
-{%- endfor -%}
 {%- endmacro -%}

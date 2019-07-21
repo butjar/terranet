@@ -45,6 +45,10 @@ class SimpleTerratopo(Terratopo):
         {%- import 'gw.j2' as gw_tmpl %}
         {{ gw_tmpl.input("gw", komondor_config)|indent(8) }}
 
+        # Add user flows
+        {%- import 'iperf.j2' as gw_tmpl %}
+        {{ gw_tmpl.input(komondor_config)|indent(8) }}
+
         super(SimpleTerratopo, self).build(*args, **kwargs)
 
 

@@ -1,4 +1,8 @@
+import os
+import signal
 from threading import Thread, Event
+import subprocess
+
 from ipmininet.router import Router, ProcessHelper
 
 from mininet.node import Host, OVSBridge
@@ -142,6 +146,80 @@ class DN5_60(Terranode):
 class Gateway(OVSBridge):
     def __init__(self, name, **params):
         super(Gateway, self).__init__(name, **params)
+
+
+class IperfHost(Host):
+    def __init__(self, name, **params):
+        super(IperfHost, self).__init__(name, **params)
+        if "logfile" in params:
+            self.logfile = params["logfile"]
+        else:
+            self.logfile = "/tmp/iperf_{}.log".format(self.name)
+        self.iperf_pid = None
+
+    def terminate(self):
+        if self.iperf_pid:
+            try:
+                os.killpg(self.iperf_pid, signal.SIGHUP)
+            except:
+                # TODO print warning
+                pass
+        super(IperfHost, self).terminate()
+
+
+class IperfDownloadClient(IperfHost):
+    def __init__(self, name, host=None, server_name=None, **params):
+        self._host = host
+        self.server_name = server_name
+        super(IperfDownloadClient, self).__init__(name, **params)
+
+    @property
+    def host(self):
+        return self._host
+
+    @host.setter
+    def host(self, host):
+        if isinstance(host, IperfDownloadServer):
+            self._host = host.intfList()[0].ip6
+        else:
+            self._host = host
+
+
+    def run_iperf_client(self,
+                         bin="iperf3",
+                         args="-6 -R -t 0 -i 10",
+                         bind_address=None):
+        if not self.host:
+            raise ValueError("""Host attribute must be set before running """
+                             """iperf client.""")
+        if not bind_address:
+            bind_address = self.intfList()[0].ip6
+        # --logfile option requires iperf3 >= 3.1
+        cmd = """until ping6 -c1 {host} >/dev/null 2>&1; do :; done; """\
+              """{bin} {args} -c {host} -B {bind} --logfile {log}""".format(
+                      bin=bin, args=args, host=self.host, bind=bind_address,
+                      log=self.logfile)
+        p = self.popen(cmd, shell=True)
+        self.iperf_pid = p.pid
+        return p
+
+
+class IperfDownloadServer(IperfHost):
+    def __init__(self, name, **params):
+        super(IperfDownloadServer, self).__init__(name, **params)
+
+    def run_iperf_server(self,
+                         bin="iperf3",
+                         args="",
+                         bind_address=None):
+        if not bind_address:
+            bind_address = self.intfList()[0].ip6
+        # --logfile option requires iperf3 >= 3.1
+        cmd = "{} -s {} -B {} --logfile {}".format(bin, args, bind_address,
+                self.logfile)
+        p = self.popen(cmd)
+        self.iperf_pid = p.pid
+        return p
 
 
 class TerranetEvent(object):
