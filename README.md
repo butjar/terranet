@@ -6,7 +6,7 @@ creates a network and adjusts the link speeds according to the simulation
 results from the first simulation. Terranet builds on top of the
 [ipmininet](https://github.com/cnp3/ipmininet) mininet plugin.
 
-# Install terranet
+## Install terranet
 With setuptools:
 
 ```
@@ -19,6 +19,6 @@ With pip (from parent directory):
 pip install terranet/
 ```
 
-# Examples
+## Examples
 We provide example simulations in [examples](examples). Please consult the
 according documentation.
