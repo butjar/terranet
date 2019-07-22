@@ -190,13 +190,13 @@ class IperfDownloadClient(IperfHost):
                          args="-6 -R -t 0 -i 10",
                          bind_address=None):
         if not self.host:
-            raise ValueError("""Host attribute must be set before running """
-                             """iperf client.""")
+            raise ValueError("""Host attribute must be set before running
+                                iperf client.""")
         if not bind_address:
             bind_address = self.intfList()[0].ip6
         # --logfile option requires iperf3 >= 3.1
-        cmd = """until ping6 -c1 {host} >/dev/null 2>&1; do :; done; """\
-              """{bin} {args} -c {host} -B {bind} --logfile {log}""".format(
+        cmd = """until ping6 -c1 {host} >/dev/null 2>&1; do :; done;
+                 {bin} {args} -c {host} -B {bind} --logfile {log}""".format(
                       bin=bin, args=args, host=self.host, bind=bind_address,
                       log=self.logfile)
         p = self.popen(cmd, shell=True)
