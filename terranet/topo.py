@@ -1,8 +1,8 @@
 from ipmininet.iptopo import IPTopo
 from .router_config import OpenrConfig, TerranetRouterDescription
 
-from .node import (ClientNode, DistributionNode60, DN5_60, Gateway,
-                   IperfDownloadClient, IperfDownloadClient)
+from .node import (ClientNode, DistributionNode60, DistributionNode5_60,
+                   Gateway, IperfDownloadClient, IperfDownloadServer)
 from .link import Wifi5GHzLink, Wifi60GHzLink
 
 

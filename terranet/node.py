@@ -92,7 +92,7 @@ class DistributionNode60(Terranode):
                                    *args, **kwargs)
 
 
-class DN5_60(Terranode):
+class DistributionNode5_60(Terranode):
     def __init__(self,
                  name,
                  config=OpenrConfig,
@@ -100,7 +100,7 @@ class DN5_60(Terranode):
                  fronthaulemulator=None,
                  *args, **kwargs):
         self.fronthaulemulator = fronthaulemulator
-        super(DN5_60, self).__init__(name,
+        super(DistributionNode5_60, self).__init__(name,
                                      config=config,
                                      komondor_config=komondor_config,
                                      *args, **kwargs)
