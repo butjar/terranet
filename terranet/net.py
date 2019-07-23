@@ -50,20 +50,18 @@ class Terranet(IPNet):
         return filter(lambda x: isinstance(x, Terranode),
                       self.routers)
 
-    def cns(self):
+    def client_nodes(self):
         return filter(lambda x: isinstance(x, ClientNode),
                       self.terranodes())
-                      self.terranodes())
 
-    def dns(self):
-        return dn60s + dn5_60s
+    def distribution_nodes(self):
+        return distribution_nodes_60 + distribution_nodes_5_60
 
-    def dn60s(self):
+    def distribution_nodes_60(self):
         return filter(lambda x: isinstance(x, DistributionNode60),
                       self.terranodes())
-                      self.terranodes())
 
-    def dn5_60s(self):
+    def distribution_nodes_5_60(self):
         return filter(lambda x: isinstance(x, DistributionNode5_60),
                       self.terranodes())
 
@@ -71,8 +69,8 @@ class Terranet(IPNet):
         return filter(lambda x: x.komondor_config[key] == value,
                       self.terranodes())
 
-    def get_connected_cns(self, dn5_60):
-        wlan_code = dn5_60.komondor_config["wlan_code"]
+    def connected_client_nodes(self, distribution_node_5_60):
+        wlan_code = distribution_node_5_60.komondor_config["wlan_code"]
         nodes_with_wlan_code = self.get_nodes_by_komondor_setting("wlan_code",
                                                                   wlan_code)
         return filter(lambda x: isinstance(x, ClientNode), nodes_with_wlan_code)

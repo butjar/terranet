@@ -51,18 +51,19 @@ class Terratopo(IPTopo):
     def is_distribution_node_60(self, node):
         return self.isNodeType(node, 'is_distribution_node_60')
 
-    def cns(self, sort=True):
+    def client_nodes(self, sort=True):
         return filter(self.is_client_node, self.nodes(sort))
 
-    def dns(self, sort=True):
-        return self.dn5_60s(sort=sort) + self.dn60s(sort=sort)
+    def distribution_nodes(self, sort=True):
+        return (self.distribution_nodes_5_60(sort=sort) +
+                self.distribution_nodes_60(sort=sort))
 
-    def dn5_60s(self, sort=True):
+    def distribution_nodes_5_60(self, sort=True):
         return filter(self.is_distribution_node_5_60, self.nodes(sort))
 
-    def dn60s(self, sort=True):
+    def distribution_nodes_60(self, sort=True):
         return filter(self.is_distribution_node_60, self.nodes(sort))
 
     def terranodes(self, sort=True):
-        return cns(sort=sort) + dns(sort=sort)
+        return client_nodes(sort=sort) + distribution_nodes(sort=sort)
 

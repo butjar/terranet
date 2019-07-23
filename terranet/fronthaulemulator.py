@@ -48,10 +48,10 @@ class FronthaulEmulator(object):
         info("FronthaulEmulator: Node {} triggered channel switch.\n"
              .format(evt.node.name))
         try:
-            dn5_60 = evt.node
-            connected_cns = self.net.get_connected_cns(dn5_60)
-            for cn in connected_cns:
-                cn.update_komondor_config(evt.new_channel_config)
+            distribution_node = evt.node
+            connected_client_nodes = self.net.connected_client_nodes(distribution_node)
+            for client_node in connected_client_nodes:
+                client_node.update_komondor_config(evt.new_channel_config)
             self.apply_network_config()
             evt.result = True
             evt.message = "New config file: {}\n".format(self.current_file)
@@ -61,7 +61,7 @@ class FronthaulEmulator(object):
                                Rolling back to previos config: {}.\n"""\
                             .format(err,self.current_file)
             warn(error_message)
-            for node in (connected_cns + [dn5_60]):
+            for node in (connected_client_nodes + [distribution_node]):
                 node.update_komondor_config(evt.old_channel_config)
             self.apply_network_config()
             evt.result = False
@@ -114,10 +114,10 @@ class FronthaulEmulator(object):
              .format(config.cfg_file))
 
     def apply_results(self):
-        for dn5_60 in self.net.dn5_60s():
-            for cn in self.net.get_connected_cns(dn5_60):
-                for (intf, _) in dn5_60.connectionsTo(cn):
-                    result = self.read_result(cn)
+        for distribution_node in self.net.distribution_nodes_5_60():
+            for client_node in self.net.get_connected_client_nodes(distribution_node):
+                for (intf, _) in distribution_node.connectionsTo(client_node):
+                    result = self.read_result(client_node)
                     bw = int(result.getint("throughput") / 1000000)
                     delay = "{}ms".format(int(result.getfloat("delay")))
                     intf.config(bw=bw, delay=delay, use_tbf=True)
