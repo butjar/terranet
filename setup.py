@@ -14,6 +14,7 @@ setup(
         "jinja2",
         "whichcraft",
         "future",
+        "ipmininet",
         "networkx",
         "zmq",
         "matplotlib",
