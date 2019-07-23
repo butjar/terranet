@@ -322,6 +322,8 @@ def simulate(args):
             # Race condition
             # async might not be ready yet
             # but queue is already empty
+            import pdb
+            pdb.set_trace()
             print(e)
             pass
 
