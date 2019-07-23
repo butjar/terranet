@@ -17,7 +17,7 @@ komondor_config = KomondorConfig("{{ komondor_config.cfg_file }}")
 class SimpleTerratopo(Terratopo):
     def build(self, *args, **kwargs):
 
-        # Add DNs
+        # Add Distribution Nodes
         {%- import 'dn.j2' as dn_tmpl %}
         {%- for cfg in komondor_config.access_points() %}
         {{ dn_tmpl.input(cfg)|indent(8) }}

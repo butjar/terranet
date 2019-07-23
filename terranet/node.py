@@ -80,13 +80,13 @@ class ClientNode(Terranode):
                                  *args, **kwargs)
 
 
-class DN60(Terranode):
+class DistributionNode60(Terranode):
     def __init__(self,
                  name,
                  config=OpenrConfig,
                  komondor_config=None,
                  *args, **kwargs):
-        super(DN60, self).__init__(name,
+        super(DistributionNode60, self).__init__(name,
                                    config=config,
                                    komondor_config=komondor_config,
                                    *args, **kwargs)

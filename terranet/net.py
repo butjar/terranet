@@ -5,8 +5,8 @@ from mininet.node import OVSSwitch
 from ipmininet.ipnet import IPNet
 from .fronthaulemulator import FronthaulEmulator
 from .link import Terralink
-from .node import (Terranode, ClientNode, DN60, DN5_60, IperfDownloadClient,
-                   IperfDownloadClient)
+from .node import (Terranode, ClientNode, DistributionNode60, DN5_60,
+                   IperfDownloadClient, IperfDownloadClient)
                    IperfDownloadServer)
 from .router_config import OpenrConfig
 
@@ -14,7 +14,7 @@ class Terranet(IPNet):
     def __init__(self,
                  fronthaulemulator=FronthaulEmulator(),
                  system_config={},
-                 router=DN60,
+                 router=DistributionNode60,
                  config=OpenrConfig,
                  link=Terralink,
                  intf=TCIntf,
@@ -59,7 +59,8 @@ class Terranet(IPNet):
         return dn60s + dn5_60s
 
     def dn60s(self):
-        return filter(lambda x: isinstance(x, DN60),
+        return filter(lambda x: isinstance(x, DistributionNode60),
+                      self.terranodes())
                       self.terranodes())
 
     def dn5_60s(self):
