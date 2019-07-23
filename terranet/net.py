@@ -5,7 +5,8 @@ from mininet.node import OVSSwitch
 from ipmininet.ipnet import IPNet
 from .fronthaulemulator import FronthaulEmulator
 from .link import Terralink
-from .node import (Terranode, CN, DN60, DN5_60, IperfDownloadClient,
+from .node import (Terranode, ClientNode, DN60, DN5_60, IperfDownloadClient,
+                   IperfDownloadClient)
                    IperfDownloadServer)
 from .router_config import OpenrConfig
 
@@ -50,7 +51,8 @@ class Terranet(IPNet):
                       self.routers)
 
     def cns(self):
-        return filter(lambda x: isinstance(x, CN),
+        return filter(lambda x: isinstance(x, ClientNode),
+                      self.terranodes())
                       self.terranodes())
 
     def dns(self):
@@ -72,7 +74,7 @@ class Terranet(IPNet):
         wlan_code = dn5_60.komondor_config["wlan_code"]
         nodes_with_wlan_code = self.get_nodes_by_komondor_setting("wlan_code",
                                                                   wlan_code)
-        return filter(lambda x: isinstance(x, CN), nodes_with_wlan_code)
+        return filter(lambda x: isinstance(x, ClientNode), nodes_with_wlan_code)
 
     def get_iperf_download_clients(self):
         return filter(lambda x: isinstance(x, IperfDownloadClient),

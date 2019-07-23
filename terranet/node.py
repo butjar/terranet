@@ -68,13 +68,13 @@ class Terranode(Router):
         self.clear_changed()
 
 
-class CN(Terranode):
+class ClientNode(Terranode):
     def __init__(self,
                  name,
                  config=OpenrConfig,
                  komondor_config=None,
                  *args, **kwargs):
-        super(CN, self).__init__(name,
+        super(ClientNode, self).__init__(name,
                                  config=config,
                                  komondor_config=komondor_config,
                                  *args, **kwargs)
