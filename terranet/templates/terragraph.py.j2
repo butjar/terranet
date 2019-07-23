@@ -18,15 +18,15 @@ class SimpleTerratopo(Terratopo):
     def build(self, *args, **kwargs):
 
         # Add Distribution Nodes
-        {%- import 'dn.j2' as dn_tmpl %}
+        {%- import 'distribution_node.j2' as distribution_node_tmpl %}
         {%- for cfg in komondor_config.access_points() %}
-        {{ dn_tmpl.input(cfg)|indent(8) }}
+        {{ distribution_node_tmpl.input(cfg)|indent(8) }}
         {% endfor %}
 
         # Add Client Nodes
-        {%- import 'cn.j2' as cn_tmpl %}
+        {%- import 'client_node.j2' as client_node_tmpl %}
         {%- for cfg in komondor_config.stations() %}
-        {{ cn_tmpl.input(cfg)|indent(8) }}
+        {{ client_node_tmpl.input(cfg)|indent(8) }}
         {% endfor %}
 
         # Add WiFi 5GHz Links
@@ -42,8 +42,8 @@ class SimpleTerratopo(Terratopo):
         {%- endfor %}
 
         # Add GW switch
-        {%- import 'gw.j2' as gw_tmpl %}
-        {{ gw_tmpl.input("gw", komondor_config)|indent(8) }}
+        {%- import 'gateway.j2' as gateway_tmpl %}
+        {{ gateway_tmpl.input("gw", komondor_config)|indent(8) }}
 
         # Add user flows
         {%- import 'iperf.j2' as gw_tmpl %}

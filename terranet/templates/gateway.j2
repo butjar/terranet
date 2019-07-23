@@ -3,6 +3,6 @@
 {%- set aps_etw = komondor_config.sort_west_to_east(access_points) %}
 {%- set edge_node = aps_etw[0] %}
 {%- set edge_node_name = edge_node.name|replace("Node_", "") -%}
-{{ name }} = self.addGateway("s1")
+{{ name }} = self.add_gateway("s1")
 self.addLink({{ name }}, {{ edge_node_name }}, cls=IPLink)
 {%- endmacro -%}
