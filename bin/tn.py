@@ -322,6 +322,7 @@ def simulate(args):
             # Race condition
             # async might not be ready yet
             # but queue is already empty
+            print(e)
             pass
 
     while not q.empty():
