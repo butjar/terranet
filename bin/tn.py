@@ -316,7 +316,7 @@ def simulate(args):
         try:
             r = q.get(timeout=5.0)
             if isinstance(r, RuntimeError):
-                print(e)
+                print(r)
             bar.next()
         except Exception as e:
             # Race condition
