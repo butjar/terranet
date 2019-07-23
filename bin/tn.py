@@ -314,17 +314,12 @@ def simulate(args):
 
     while not async_res.ready():
         try:
-            r = q.get(timeout=5.0)
-            if isinstance(r, RuntimeError):
-                print(r)
+            q.get(timeout=5.0)
             bar.next()
         except Exception as e:
             # Race condition
             # async might not be ready yet
             # but queue is already empty
-            import pdb
-            pdb.set_trace()
-            print(e)
             pass
 
     while not q.empty():
@@ -334,6 +329,10 @@ def simulate(args):
         except:
             print('Timeout while waiting.')
             pass
+    try:
+        async_res.get()  # Get result to trigger possible exceptions
+    except RuntimeError as e:
+        print(e)
 
     t2 = time.time()
     pool.close()
@@ -349,11 +348,8 @@ def komondor_worker(cfg, dirs, komondor=None, komondor_args=None):
     args["stats"] = result_file
     k = Komondor(executable=komondor)
 
-    try:
-        (proc, stdout, stderr) = k.run(cfg_file, **args)
-        queue.put(stderr + stdout)
-    except RuntimeError as e:
-        return e
+    (proc, stdout, stderr) = k.run(cfg_file, **args)
+    queue.put(stderr + stdout)
 
     return stderr
 
