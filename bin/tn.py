@@ -314,7 +314,9 @@ def simulate(args):
 
     while not async_res.ready():
         try:
-            q.get(timeout=5.0)
+            r = q.get(timeout=5.0)
+            if isinstance(r, RuntimeError):
+                print(e)
             bar.next()
         except Exception as e:
             # Race condition
@@ -344,8 +346,11 @@ def komondor_worker(cfg, dirs, komondor=None, komondor_args=None):
     args["stats"] = result_file
     k = Komondor(executable=komondor)
 
-    (proc, stdout, stderr) = k.run(cfg_file, **args)
-    queue.put(stderr + stdout)
+    try:
+        (proc, stdout, stderr) = k.run(cfg_file, **args)
+        queue.put(stderr + stdout)
+    except RuntimeError as e:
+        return e
 
     return stderr
 
