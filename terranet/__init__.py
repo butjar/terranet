@@ -171,7 +171,13 @@ class DistributionNode(ipmininet.router.Router):
         self.cmdPrint(cmd)  # Just to make sure. This is lazy. I know.
 
     def handle_ap_daemon(self):
-        self.ap_daemon = self.popen('python -m terranet.ap_daemon')
+
+        # Make sure we are starting the current interpreter, with all the required modules.
+        python_path = sys.executable
+        if not python_path:
+            python_path = 'python'
+
+        self.ap_daemon = self.popen('{} -m terranet.ap_daemon'.format(python_path))
         out = self.ap_daemon.stdout
         err = self.ap_daemon.stderr
         print('Starting AP daemon ({pid})'.format(pid=self.ap_daemon.pid))
