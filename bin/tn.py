@@ -40,6 +40,7 @@ class PseudoMeterer(threading.Thread):
         self.running = True
 
         topic = 'flows/{}'.format(self.dst.name)
+        p = None
         while self.running:
             _, ip6 = ipmininet.utils.address_pair(self.dst)
             if ip6 is None:
@@ -71,6 +72,10 @@ class PseudoMeterer(threading.Thread):
                             self.socket.send(payload, flags=zmq.NOBLOCK)
                         except zmq.ZMQError:
                             print('Dropping message due to full queue')
+
+        if p:
+            print('Stopping iperf process with pid {}'.format(p.pid))
+            p.kill()
 
 
 class FronthaulEmulatorSwitch(threading.Thread):
