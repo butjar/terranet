@@ -65,8 +65,12 @@ class PseudoMeterer(threading.Thread):
 
                     payload = "{}".format(int(o.split(',')[8]) / 1e6)
                     with self.lock:
-                        self.socket.send(topic, flags=zmq.SNDMORE)
-                        self.socket.send(payload)
+                        try:
+                            # NOBLOCK necessary to prevent deadlock
+                            self.socket.send(topic, flags=zmq.SNDMORE | zmq.NOBLOCK)
+                            self.socket.send(payload, flags=zmq.NOBLOCK)
+                        except zmq.ZMQError:
+                            print('Dropping message due to full queue')
 
 
 class FronthaulEmulatorSwitch(threading.Thread):
