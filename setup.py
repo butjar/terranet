@@ -15,6 +15,7 @@ setup(
         "whichcraft",
         "future",
         "ipmininet",
+        "flask",
         "networkx",
         "zmq",
         "matplotlib",
