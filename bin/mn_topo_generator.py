@@ -11,12 +11,13 @@ from jinja2 import Environment, PackageLoader
 from terranet.config import KomondorConfig
 
 
-def render_template(*args,**kwargs):
+def render_template(*args, **kwargs):
     env = Environment(
         loader=PackageLoader('terranet', 'templates'),
     )
     template = env.get_template('terragraph.py.j2')
     print(template.render(*args, **kwargs))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -13,8 +13,9 @@ class Terratopo(IPTopo):
     def addDaemon(self, router, daemon, default_cfg_class=OpenrConfig,
                   cfg_daemon_list="daemons", **daemon_params):
         super(Terratopo, self).addDaemon(router, daemon,
-                default_cfg_class=default_cfg_class,
-                cfg_daemon_list=cfg_daemon_list, **daemon_params)
+                                         default_cfg_class=default_cfg_class,
+                                         cfg_daemon_list=cfg_daemon_list,
+                                         **daemon_params)
 
     def addRouter(self, name, **kwargs):
         router = self.addNode(name, isRouter=True, **kwargs)
@@ -37,7 +38,7 @@ class Terratopo(IPTopo):
 
     def add_iperf_download_client(self, name, server_name=None, **opts):
         return self.addHost(name, cls=IperfDownloadClient,
-                server_name=server_name, **opts)
+                            server_name=server_name, **opts)
 
     def add_iperf_download_server(self, name, **opts):
         return self.addHost(name, cls=IperfDownloadServer, **opts)
@@ -66,4 +67,3 @@ class Terratopo(IPTopo):
 
     def terranodes(self, sort=True):
         return client_nodes(sort=sort) + distribution_nodes(sort=sort)
-

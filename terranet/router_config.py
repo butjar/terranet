@@ -2,6 +2,7 @@ from ipmininet.router.config.base import RouterConfig
 from ipmininet.router.config.openr import Openr
 from ipmininet.iptopo import RouterDescription
 
+
 class OpenrConfig(RouterConfig):
     """A simple config with only a OpenR daemon"""
     def __init__(self, node, *args, **kwargs):
@@ -28,4 +29,3 @@ class TerranetRouterDescription(RouterDescription):
                   **daemon_params):
         self.topo.addDaemon(self, daemon, default_cfg_class=default_cfg_class,
                             **daemon_params)
-

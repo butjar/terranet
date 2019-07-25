@@ -7,6 +7,7 @@ from .node import (KomondorConfigChangeEvent,
                    FronthaulEmulatorRegistrationEvent,
                    FronthaulEmulatorCancelRegistrationEvent)
 
+
 class FronthaulEmulator(object):
     def __init__(self,
                  net=None,
@@ -16,7 +17,7 @@ class FronthaulEmulator(object):
                  current_file=None,
                  current_config=None,
                  current_result=None):
-        self.net=net
+        self.net = net
         self.cfg_dir = os.path.abspath(cfg_dir)
         self.out_dir = os.path.abspath(out_dir)
         self.system_config = system_config
@@ -49,8 +50,8 @@ class FronthaulEmulator(object):
              .format(evt.node.name))
         try:
             distribution_node = evt.node
-            connected_client_nodes = self.net.connected_client_nodes(distribution_node)
-            for client_node in connected_client_nodes:
+            client_nodes = self.net.connected_client_nodes(distribution_node)
+            for client_node in client_nodes:
                 client_node.update_komondor_config(evt.new_channel_config)
             self.apply_network_config()
             evt.result = True
@@ -59,7 +60,7 @@ class FronthaulEmulator(object):
         except RuntimeError as err:
             error_message = """FronthaulEmulator: Error {}
                                Rolling back to previos config: {}.\n"""\
-                            .format(err,self.current_file)
+                            .format(err, self.current_file)
             warn(error_message)
             for node in (connected_client_nodes + [distribution_node]):
                 node.update_komondor_config(evt.old_channel_config)
@@ -75,7 +76,7 @@ class FronthaulEmulator(object):
         evt.set()
 
     def handle_cancel_registration(self, evt):
-        info("FronthaulEmulator: Unregistering node {}\n"\
+        info("FronthaulEmulator: Unregistering node {}\n"
              .format(evt.node.name))
         evt.result = True
         evt.message = "OK\n"
@@ -115,7 +116,8 @@ class FronthaulEmulator(object):
 
     def apply_results(self):
         for distribution_node in self.net.distribution_nodes_5_60():
-            for client_node in self.net.connected_client_nodes(distribution_node):
+            client_nodes = self.net.connected_client_nodes(distribution_node)
+            for client_node in client_nodes:
                 for (intf, _) in distribution_node.connectionsTo(client_node):
                     result = self.read_result(client_node)
                     bw = int(result.getint("throughput") / 1000000)
@@ -123,7 +125,7 @@ class FronthaulEmulator(object):
                     intf.config(bw=bw, delay=delay, use_tbf=True)
 
     def build_terranet_config(self):
-        config_dict = { "System": self.system_config }
+        config_dict = {"System": self.system_config}
 
         def insert_config(dict, node):
             dict["Node_{}".format(node.name)] = node.komondor_config
@@ -149,4 +151,3 @@ class FronthaulEmulator(object):
     def read_result(self, node):
         section_name = "Node_{}".format(node.name)
         return self.current_result[section_name]
-

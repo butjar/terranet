@@ -1,6 +1,7 @@
 import itertools
 from configparser import ConfigParser
 
+
 class KomondorBaseConfig(ConfigParser):
     def __init__(self,
                  cfg_file=None,
@@ -11,8 +12,7 @@ class KomondorBaseConfig(ConfigParser):
             self.read(cfg_file)
 
     def filter_sections_by_value(self, key, value):
-        sections = filter(lambda x: key in self[x] and
-                                    self[x][key] == value,
+        sections = filter(lambda x: key in self[x] and self[x][key] == value,
                           self.sections())
         return map(lambda x: self[x], sections)
 
@@ -41,7 +41,7 @@ class KomondorConfig(KomondorBaseConfig):
                       self.nodes_by_wlan_code(ap["wlan_code"]))
 
     def wifi5_links_for_access_point(self, ap):
-        return [(ap.name, sta.name)\
+        return [(ap.name, sta.name)
                 for sta in self.get_stations_by_access_point(ap)]
 
     def wifi5GHz_links(self):
@@ -51,7 +51,7 @@ class KomondorConfig(KomondorBaseConfig):
     def wifi60GHz_links(self):
         aps = map(lambda x: x.name,
                   self.sort_west_to_east(self.access_points()))
-        return [(aps[i], aps[i+1]) for i, _ in enumerate(aps)\
+        return [(aps[i], aps[i+1]) for i, _ in enumerate(aps)
                 if i+1 < len(aps)]
 
     def sort_west_to_east(self, nodes):
@@ -61,4 +61,3 @@ class KomondorConfig(KomondorBaseConfig):
 class KomondorResult(KomondorBaseConfig):
     def __init__(self, cfg_file=None):
         super(KomondorResult, self).__init__(cfg_file=cfg_file)
-

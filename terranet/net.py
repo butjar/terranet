@@ -10,6 +10,7 @@ from .node import (Terranode, ClientNode, DistributionNode60,
                    IperfDownloadServer)
 from .router_config import OpenrConfig
 
+
 class Terranet(IPNet):
     def __init__(self,
                  fronthaulemulator=FronthaulEmulator(),
@@ -20,8 +21,8 @@ class Terranet(IPNet):
                  intf=TCIntf,
                  switch=OVSSwitch,
                  *args, **kwargs):
-        fronthaulemulator.net=self
-        fronthaulemulator.system_config=system_config
+        fronthaulemulator.net = self
+        fronthaulemulator.system_config = system_config
         self.fronthaulemulator = fronthaulemulator
         super(Terranet, self).__init__(router=router,
                                        config=config,
@@ -71,9 +72,10 @@ class Terranet(IPNet):
 
     def connected_client_nodes(self, distribution_node_5_60):
         wlan_code = distribution_node_5_60.komondor_config["wlan_code"]
-        nodes_with_wlan_code = self.get_nodes_by_komondor_setting("wlan_code",
-                                                                  wlan_code)
-        return filter(lambda x: isinstance(x, ClientNode), nodes_with_wlan_code)
+        nodes_with_wlan_code = self.get_nodes_by_komondor_setting(
+                                        "wlan_code", wlan_code)
+        return filter(lambda x: isinstance(x, ClientNode),
+                      nodes_with_wlan_code)
 
     def get_iperf_download_clients(self):
         return filter(lambda x: isinstance(x, IperfDownloadClient),
@@ -82,4 +84,3 @@ class Terranet(IPNet):
     def get_iperf_download_servers(self):
         return filter(lambda x: isinstance(x, IperfDownloadServer),
                       self.hosts)
-

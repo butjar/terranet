@@ -5,10 +5,12 @@ from __future__ import print_function
 import sys
 import os
 import argparse
-import multiprocessing, logging
+import multiprocessing
+import logging
 from functools import partial
 
 from terranet.komondor import Komondor
+
 
 def run_komondor_worker(cfg,
                         dirs=[],
@@ -23,6 +25,7 @@ def run_komondor_worker(cfg,
     (proc, stdout, stderr) = k.run(cfg_file, **args)
     return stderr
 
+
 def run_komondor_simulations(dirs,
                              processes,
                              komondor,
@@ -31,7 +34,7 @@ def run_komondor_simulations(dirs,
         lambda x: x.endswith(".cfg"),
         os.listdir(dirs["cfg"])
     ))
-    
+
     pool = multiprocessing.Pool(processes)
     f = partial(run_komondor_worker, dirs=dirs, komondor=komondor,
                 komondor_args=komondor_args)
@@ -42,12 +45,12 @@ if __name__ == '__main__':
     current_dir = os.getcwd()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cfg_dir', 
-                        nargs='?', 
-                        default="{}/cfg".format(current_dir), 
+    parser.add_argument('--cfg_dir',
+                        nargs='?',
+                        default="{}/cfg".format(current_dir),
                         type=str,
                         help='')
-    parser.add_argument('--out_dir', 
+    parser.add_argument('--out_dir',
                         nargs='?',
                         default="{}/out".format(current_dir),
                         type=str,
@@ -55,19 +58,19 @@ if __name__ == '__main__':
     parser.add_argument('--time',
                         nargs='?',
                         default=100,
-                        type=int, 
+                        type=int,
                         help="")
-    parser.add_argument('--seed', 
+    parser.add_argument('--seed',
                         nargs='?',
                         default=1000,
                         type=int,
                         help='')
-    parser.add_argument('--processes', 
+    parser.add_argument('--processes',
                         nargs='?',
                         default=None,
                         type=int,
                         help='')
-    parser.add_argument('--komondor', 
+    parser.add_argument('--komondor',
                         nargs='?',
                         type=str,
                         help='')

@@ -2,6 +2,7 @@ from functools import partial
 from flask import Flask, request, jsonify, abort
 from flask.helpers import locked_cached_property
 
+
 class ConfigAPI(Flask):
     def __init__(self,
                  import_name,
@@ -43,9 +44,9 @@ class ConfigAPI(Flask):
         return jsonify(self.node.komondor_config)
 
     def switch_channel(self):
-        params = [ "primary_channel",
-                   "min_channel_allowed",
-                   "max_channel_allowed" ]
+        params = ["primary_channel",
+                  "min_channel_allowed",
+                  "max_channel_allowed"]
         payload = request.json
         if not payload:
             # TODO add error message
@@ -65,4 +66,3 @@ class ConfigAPI(Flask):
         else:
             # TODO add error message
             abort(400)
-

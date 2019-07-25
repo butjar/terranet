@@ -3,14 +3,16 @@ import signal
 from threading import Thread, Event
 import subprocess
 
-from ipmininet.router import Router, ProcessHelper
-
+from mininet.log import warn
 from mininet.node import Host, OVSBridge
+
+from ipmininet.router import Router, ProcessHelper
 
 from .router_config import OpenrConfig
 from .config_api import ConfigAPI
 
 import netns
+
 
 class Terranode(Router):
     def __init__(self,
@@ -75,9 +77,9 @@ class ClientNode(Terranode):
                  komondor_config=None,
                  *args, **kwargs):
         super(ClientNode, self).__init__(name,
-                                 config=config,
-                                 komondor_config=komondor_config,
-                                 *args, **kwargs)
+                                         config=config,
+                                         komondor_config=komondor_config,
+                                         *args, **kwargs)
 
 
 class DistributionNode60(Terranode):
@@ -86,10 +88,9 @@ class DistributionNode60(Terranode):
                  config=OpenrConfig,
                  komondor_config=None,
                  *args, **kwargs):
-        super(DistributionNode60, self).__init__(name,
-                                   config=config,
-                                   komondor_config=komondor_config,
-                                   *args, **kwargs)
+        super(DistributionNode60, self).__init__(
+                name, config=config, komondor_config=komondor_config,
+                *args, **kwargs)
 
 
 class DistributionNode5_60(Terranode):
@@ -100,20 +101,19 @@ class DistributionNode5_60(Terranode):
                  fronthaulemulator=None,
                  *args, **kwargs):
         self.fronthaulemulator = fronthaulemulator
-        super(DistributionNode5_60, self).__init__(name,
-                                     config=config,
-                                     komondor_config=komondor_config,
-                                     *args, **kwargs)
+        super(DistributionNode5_60, self).__init__(
+                name, config=config, komondor_config=komondor_config,
+                *args, **kwargs)
         self.run_config_api_thread()
 
     def run_config_api_thread(self):
         nspid = self.pid
         with netns.NetNS(nspid=nspid):
             api = ConfigAPI(self.name, self)
-            kwargs = { "host": "::",
-                       "port": 80 }
+            kwargs = {"host": "::",
+                      "port": 80}
             api_thread = Thread(target=api.run, kwargs=kwargs)
-            api_thread.daemon=True
+            api_thread.daemon = True
             api_thread.start()
 
     def get_channel_config(self):
@@ -122,9 +122,9 @@ class DistributionNode5_60(Terranode):
             primary_channel = self.komondor_config["primary_channel"]
             min_channel_allowed = self.komondor_config["min_channel_allowed"]
             max_channel_allowed = self.komondor_config["max_channel_allowed"]
-            channel_cfg = { "primary_channel": primary_channel,
-                            "min_channel_allowed": min_channel_allowed,
-                            "max_channel_allowed": max_channel_allowed }
+            channel_cfg = {"primary_channel": primary_channel,
+                           "min_channel_allowed": min_channel_allowed,
+                           "max_channel_allowed": max_channel_allowed}
         return channel_cfg
 
     def switch_channel(self,
@@ -161,7 +161,7 @@ class IperfHost(Host):
         if self.iperf_pid:
             try:
                 os.killpg(self.iperf_pid, signal.SIGHUP)
-            except:
+            except Exception as e:
                 # TODO print warning
                 pass
         super(IperfHost, self).terminate()
@@ -183,7 +183,6 @@ class IperfDownloadClient(IperfHost):
             self._host = host.intfList()[0].ip6
         else:
             self._host = host
-
 
     def run_iperf_client(self,
                          bin="iperf3",
@@ -281,4 +280,3 @@ class FronthaulEmulatorCancelRegistrationEvent(TerranetEvent):
                  node):
         self.node = node
         super(FronthaulEmulatorCancelRegistrationEvent, self).__init__()
-
