@@ -115,7 +115,7 @@ class FronthaulEmulator(object):
 
     def apply_results(self):
         for distribution_node in self.net.distribution_nodes_5_60():
-            for client_node in self.net.get_connected_client_nodes(distribution_node):
+            for client_node in self.net.connected_client_nodes(distribution_node):
                 for (intf, _) in distribution_node.connectionsTo(client_node):
                     result = self.read_result(client_node)
                     bw = int(result.getint("throughput") / 1000000)
