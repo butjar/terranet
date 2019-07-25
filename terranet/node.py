@@ -162,8 +162,8 @@ class IperfHost(Host):
             try:
                 os.killpg(self.iperf_pid, signal.SIGHUP)
             except Exception as e:
-                # TODO print warning
-                pass
+                warn("""Could not kill iperf process with PID: {}\n
+                        {}""".format(self.iperf_pid, e))
         super(IperfHost, self).terminate()
 
 
