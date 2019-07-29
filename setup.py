@@ -3,8 +3,7 @@ setup(
     name="terranet",
     version="0.1",
     packages=find_packages(),
-    scripts=['bin/mn_topo_generator.py',
-             'bin/komondor_simulator.py'],
+    scripts=['bin/tn.py'],
 
     author="Me",
     author_email="me@example.com",
@@ -14,7 +13,13 @@ setup(
         "configparser",
         "jinja2",
         "whichcraft",
-        "future"
+        "future",
+        "ipmininet",
+        "flask",
+        "networkx",
+        "zmq",
+        "matplotlib",
+        "progress"
     ],
     include_package_data=True,
     package_data={

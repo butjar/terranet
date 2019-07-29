@@ -12,9 +12,6 @@ class Komondor(object):
             executable = which('komondor_main')
         self.executable = executable
 
-        if not (self.executable and os.path.isfile(self.executable)):
-            raise ValueError("Komondor executable {} not found."
-                             .format(executable))
 
     def run(self, cfg, time=100, seed=1000, stats=None, **kwargs):
         defaults = {
