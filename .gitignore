@@ -126,6 +126,6 @@ dmypy.json
 .idea
 
 # Examples
-examples/160MHz/cfg/*.cfg
-examples/160MHz/out/*.cfg
-examples/160MHz/terranet_topo.py
+examples/*/cfg/*.cfg
+examples/*/out/*.cfg
+examples/*/terranet_topo.py
