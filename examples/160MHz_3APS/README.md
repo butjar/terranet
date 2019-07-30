@@ -11,3 +11,12 @@ In this example we first generate configurations for komondor using the basic to
 Afterwards we simulate the whole configuration space for 2 seconds and save the results in the `out` folder. 
 In the last step we emulate the wireless network using ipmininet and parameterize the links using the results in `out` for
 a given configuration in `cfg`. 
+
+### Visualization
+To visualize the running network you can install the `terranet-dashboard` snap, which shows current flow rates as well 
+as the topology of the network in a NodeRed dashboard:
+```bash
+sudo snap install terranet-dashboard
+terranet-dashboard
+# Open your browser on https://localhost:1880/ui
+```
