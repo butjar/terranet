@@ -19,6 +19,11 @@ With pip (from parent directory):
 pip install terranet/
 ```
 
+If you have snapd installed, you can also install the snap containing all dependencies (including ipmininet and komondor): 
+```
+sudo snap install --beta --devmode terranet 
+```
+
 ## Examples
 We provide example simulations in [examples](examples). Please consult the
 according documentation.

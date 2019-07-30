@@ -3,7 +3,7 @@ setup(
     name="terranet",
     version="0.1",
     packages=find_packages(),
-    scripts=['bin/tn.py'],
+    scripts=['bin/terranet'],
 
     author="Me",
     author_email="me@example.com",
