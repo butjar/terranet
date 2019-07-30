@@ -130,7 +130,7 @@ def config_metric(cfg_tuple, net):
 
 def run(args):
     pool = multiprocessing.Pool()
-    join_cfg_paths = functools.partial(os.path.join, path=args.cfg_path)
+    join_cfg_paths = functools.partial(os.path.join, args.cfg_path)
     cfg_files = pool.map(join_cfg_paths,
                          filter(lambda p: p.endswith('.cfg') and os.path.isfile(os.path.join(args.cfg_path, p)),
                                 os.listdir(args.cfg_path)))
@@ -141,7 +141,7 @@ def run(args):
         pool.close()
         sys.exit(-1)
 
-    join_out_paths = functools.partial(os.path.join, path=args.out_path)
+    join_out_paths = functools.partial(os.path.join, args.out_path)
     out_files = pool.map(join_out_paths,
                          filter(lambda p: p.endswith('.cfg') and os.path.isfile(os.path.join(args.out_path, p)),
                                 os.listdir(args.cfg_path)))  # Use the same files names to get corresponding outputs
