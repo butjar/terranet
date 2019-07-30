@@ -128,6 +128,9 @@ def config_metric(cfg_tuple, net):
     return metric
 
 
+def config_parse_proxy(file):
+    return terranet.config.Config.from_file(file)
+
 def run(args):
     pool = multiprocessing.Pool()
     join_cfg_paths = functools.partial(os.path.join, args.cfg_path)
@@ -154,8 +157,9 @@ def run(args):
 
     print('Found {} configurations and corresponding simulation results.'.format(len(cfg_files)))
     print('Parsing...')
-    tn_configs = pool.map(terranet.config.Config.from_file, cfg_files)
+    tn_configs = pool.map(config_parse_proxy, cfg_files)
     cfg_tuples = zip(tn_configs, out_files)
+    pool.close()
 
     print('Searching results for default configuration...')
     default = list(filter(lambda cfg_tup: False not in
@@ -172,8 +176,7 @@ def run(args):
     net.start()
 
     key = functools.partial(config_metric, net=net)
-    best = sorted(pool.map(key, cfg_tuples), reverse=True)[0]
-    pool.close()
+    best = sorted(cfg_tuples, key=key, reverse=True)[0]
 
     # Should be built before drawing
     terranet.draw_network(net, '/tmp/topology.png')
