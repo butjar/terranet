@@ -121,50 +121,57 @@ def config_metric(cfg_tuple, net):
         try:
             metric += math.log(tp)
         except ValueError as e:
-            print('{} for {}->tp = {} in {}'.format(e, name, tp, cfg_tuple[1]))
+            pass
+            # print('{} for {}->tp = {} in {}'.format(e, name, tp, cfg_tuple[1]))
         # TODO Factor in number of (active) clients
 
     return metric
 
 
 def run(args):
-    cfg_files = sorted(
-        map(lambda p: os.path.join(args.cfg_path, p),
-            filter(lambda p: p.endswith('.cfg') and os.path.isfile(os.path.join(args.cfg_path, p)),
-                   os.listdir(args.cfg_path))))
+    pool = multiprocessing.pool.Pool()
+    cfg_files = pool.map(lambda p: os.path.join(args.cfg_path, p),
+                         filter(lambda p: p.endswith('.cfg') and os.path.isfile(os.path.join(args.cfg_path, p)),
+                                os.listdir(args.cfg_path)))
+    cfg_files.sort()
 
     if len(cfg_files) < 1:
         print('No configuration files found. Exiting...')
+        pool.close()
         sys.exit(-1)
 
-    out_files = sorted(
-        map(lambda p: os.path.join(args.out_path, p),
-            filter(lambda p: p.endswith('.cfg') and os.path.isfile(os.path.join(args.cfg_path, p)),
-                   os.listdir(args.cfg_path))))  # Use the same files names to get corresponding outputs
+    out_files = pool.map(lambda p: os.path.join(args.out_path, p),
+                         filter(lambda p: p.endswith('.cfg') and os.path.isfile(os.path.join(args.cfg_path, p)),
+                                os.listdir(args.cfg_path)))  # Use the same files names to get corresponding outputs
+    out_files.sort()
 
     if len(out_files) != len(cfg_files):
         print('Missing simulation results for given configurations!')
+        pool.close()
         sys.exit(-1)
 
-    cfg_tuples = list(
-        map(lambda t: (terranet.config.Config.from_file(t[0]), t[1]),
-            zip(cfg_files, out_files))
-    )
+    print('Found {} configurations and corresponding simulation results.'.format(len(cfg_files)))
+    print('Parsing...')
+    cfg_tuples = pool.map(lambda t: (terranet.config.Config.from_file(t[0]), t[1]),
+                          zip(cfg_files, out_files))
 
+    print('Searching results for default configuration...')
     default = list(filter(lambda cfg_tup: False not in
                                           map(lambda ap: int(ap.max_channel_allowed) - int(ap.min_channel_allowed) == 7,
                                               cfg_tup[0].get_access_points()),
                           cfg_tuples))[0]
 
     limiter = terranet.FronthaulEmulator(cfg_tuples, args.config_port, starting_index=cfg_tuples.index(default))
+    print('Generating ipmininet topology...')
     topo = terranet.TerraNetTopo.from_komondor_config(cfg_tuples[0][0], limiter)
     net = terranet.TerraNet(topo=topo)
 
+    print('Starting ipmininet...')
     net.start()
 
     import functools
     key = functools.partial(config_metric, net=net)
-    best = sorted(cfg_tuples, key=key, reverse=True)[0]
+    best = sorted(pool.map(key, cfg_tuples), reverse=True)[0]
 
     # Should be built before drawing
     terranet.draw_network(net, '/tmp/topology.png')
