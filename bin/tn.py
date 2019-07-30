@@ -130,7 +130,8 @@ def config_metric(cfg_tuple, net):
 
 def run(args):
     pool = multiprocessing.Pool()
-    cfg_files = pool.map(lambda p: os.path.join(args.cfg_path, p),
+    join_cfg_paths = functools.partial(os.path.join, path=args.cfg_path)
+    cfg_files = pool.map(join_cfg_paths,
                          filter(lambda p: p.endswith('.cfg') and os.path.isfile(os.path.join(args.cfg_path, p)),
                                 os.listdir(args.cfg_path)))
     cfg_files.sort()
@@ -140,8 +141,9 @@ def run(args):
         pool.close()
         sys.exit(-1)
 
-    out_files = pool.map(lambda p: os.path.join(args.out_path, p),
-                         filter(lambda p: p.endswith('.cfg') and os.path.isfile(os.path.join(args.cfg_path, p)),
+    join_out_paths = functools.partial(os.path.join, path=args.out_path)
+    out_files = pool.map(join_out_paths,
+                         filter(lambda p: p.endswith('.cfg') and os.path.isfile(os.path.join(args.out_path, p)),
                                 os.listdir(args.cfg_path)))  # Use the same files names to get corresponding outputs
     out_files.sort()
 
@@ -152,8 +154,8 @@ def run(args):
 
     print('Found {} configurations and corresponding simulation results.'.format(len(cfg_files)))
     print('Parsing...')
-    cfg_tuples = pool.map(lambda t: (terranet.config.Config.from_file(t[0]), t[1]),
-                          zip(cfg_files, out_files))
+    tn_configs = pool.map(terranet.config.Config.from_file, cfg_files)
+    cfg_tuples = zip(tn_configs, out_files)
 
     print('Searching results for default configuration...')
     default = list(filter(lambda cfg_tup: False not in
@@ -169,9 +171,9 @@ def run(args):
     print('Starting ipmininet...')
     net.start()
 
-    import functools
     key = functools.partial(config_metric, net=net)
     best = sorted(pool.map(key, cfg_tuples), reverse=True)[0]
+    pool.close()
 
     # Should be built before drawing
     terranet.draw_network(net, '/tmp/topology.png')
