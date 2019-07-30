@@ -126,6 +126,5 @@ dmypy.json
 .idea
 
 # Examples
-examples/*/cfg/*.cfg
-examples/*/out/*.cfg
-examples/*/terranet_topo.py
+module/examples/*/cfg/*.cfg
+module/examples/*/out/*.cfg

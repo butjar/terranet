@@ -7,21 +7,27 @@ results from the first simulation. Terranet builds on top of the
 [ipmininet](https://github.com/cnp3/ipmininet) mininet plugin.
 
 ## Install terranet
-With setuptools:
+With setuptools in subdirectory:
 
 ```
+cd module
 python setup.py install -f
 ```
 
-With pip (from parent directory):
+With pip:
 
 ```
-pip install terranet/
+pip install module/
 ```
 
-If you have snapd installed, you can also install the snap containing all dependencies (including ipmininet and komondor): 
+If you have snapd installed, you can also install the snap containing all dependencies (including ipmininet and komondor) directly from the snapcraft store: 
 ```
 sudo snap install --beta --devmode terranet 
+```
+Alternatively you can build the snap yourself and install it afterwards:
+```
+sudo snapcraft
+sudo snap install --devmode terranet_*.snap
 ```
 
 ## Examples
