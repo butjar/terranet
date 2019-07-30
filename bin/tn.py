@@ -129,7 +129,7 @@ def config_metric(cfg_tuple, net):
 
 
 def run(args):
-    pool = multiprocessing.pool.Pool()
+    pool = multiprocessing.Pool()
     cfg_files = pool.map(lambda p: os.path.join(args.cfg_path, p),
                          filter(lambda p: p.endswith('.cfg') and os.path.isfile(os.path.join(args.cfg_path, p)),
                                 os.listdir(args.cfg_path)))
