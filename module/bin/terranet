@@ -46,10 +46,9 @@ class PseudoMeterer(threading.Thread):
             if ip6 is None:
                 time.sleep(3)
                 continue
-            # FIXME:
-            # iperf always returns a summary of the whole run as last entry, which sometimes looks like a sudden
-            # drop in throughput, if e.g. the config was changed during the run.
-            p = self.src.popen('iperf -y c -V -t 3000 -i 5 -c %s' % ip6)
+
+            duration = 3000  # Make it very long to have stable flows.
+            p = self.src.popen('iperf -y c -V -t {} -i 5 -c {}'.format(duration, ip6))
 
             while p.poll() is None and self.running:
                 rlist, _, _ = select.select([p.stdout, p.stderr], [], [], 7)
@@ -65,6 +64,11 @@ class PseudoMeterer(threading.Thread):
                         break
 
                     payload = "{}".format(int(o.split(',')[8]) / 1e6)
+                    time_span = float(o.split(',')[6].split('-')[1]) - float(o.split(',')[6].split('-')[0])
+
+                    if time_span > duration:
+                        continue  # Skip summary line
+
                     with self.lock:
                         try:
                             # NOBLOCK necessary to prevent deadlock
