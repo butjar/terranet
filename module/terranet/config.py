@@ -31,14 +31,14 @@ class ConfigABC(with_metaclass(ABCMeta)):
 
 class System(ConfigABC):
     def __init__(self, name="System", num_channels=8,
-            basic_channel_bandwidth=20, pdf_backoff=0, pdf_tx_time=1,
-            packet_length=12000, num_packets_aggregated=64,
-            path_loss_model_default=5, path_loss_model_indoor_indoor=5,
-            path_loss_model_indoor_outdoor=8,
-            path_loss_model_outdoor_outdoor=7, capture_effect=20,
-            noise_level=-95, adjacent_channel_model=0, collisions_model=0,
-            constant_per=0, traffic_model=99, backoff_type=1,
-            cw_adaptation=0, pifs_activated=0, capture_effect_model=1):
+                 basic_channel_bandwidth=20, pdf_backoff=0, pdf_tx_time=1,
+                 packet_length=12000, num_packets_aggregated=64,
+                 path_loss_model_default=5, path_loss_model_indoor_indoor=5,
+                 path_loss_model_indoor_outdoor=8,
+                 path_loss_model_outdoor_outdoor=7, capture_effect=20,
+                 noise_level=-95, adjacent_channel_model=0, collisions_model=0,
+                 constant_per=0, traffic_model=99, backoff_type=0,
+                 cw_adaptation=1, pifs_activated=0, capture_effect_model=1):
         self.name = name
         self.num_channels = num_channels
         self.basic_channel_bandwidth = basic_channel_bandwidth
