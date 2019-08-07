@@ -122,7 +122,6 @@ class DistributionNode(ipmininet.router.Router):
         super(DistributionNode, self).__init__(name, **params)
 
     def start(self):
-        # TODO Maybe start Iperf client
         super(DistributionNode, self).start()
         self.running = True
         self.ap_daemon_handler.start()

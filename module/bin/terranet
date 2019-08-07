@@ -9,6 +9,7 @@ import configparser
 import zmq
 import threading
 import select
+import logging
 
 import ipmininet.utils
 import terranet
@@ -37,6 +38,7 @@ class PseudoMeterer(threading.Thread):
 
     def run(self):
         self.running = True
+        log = logging.getLogger(__name__)
 
         topic = 'flows/{}'.format(self.dst.name)
         p = None
@@ -48,11 +50,13 @@ class PseudoMeterer(threading.Thread):
 
             duration = 3000  # Make it very long to have stable flows.
             p = self.src.popen('iperf -y c -V -t {} -i 5 -c {}'.format(duration, ip6))
+            log.info('Started iperf process for client {} ({}).'.format(self.dst.name, ip6))
 
             while p.poll() is None and self.running:
                 rlist, _, _ = select.select([p.stdout, p.stderr], [], [], 7)
 
                 if p.stderr in rlist:
+                    log.warn(p.stderr.readline())
                     time.sleep(3)
                     continue
 
@@ -68,16 +72,20 @@ class PseudoMeterer(threading.Thread):
                     if time_span > duration:
                         continue  # Skip summary line
 
+                    log.debug('Payload for client {}({}): {}'.format(self.dst.name, ip6, payload))
+
                     with self.lock:
                         try:
                             # NOBLOCK necessary to prevent deadlock
                             self.socket.send(topic, flags=zmq.SNDMORE | zmq.NOBLOCK)
                             self.socket.send(payload, flags=zmq.NOBLOCK)
                         except zmq.ZMQError:
-                            print('Dropping message due to full queue')
+                            log.error('Dropping message due to full queue')
+
+            log.info('Iperf process for client {} ({}) exited.'.format(self.dst.name, ip6))
 
         if p:
-            print('Stopping iperf process with pid {}'.format(p.pid))
+            log.info('Stopping iperf process with pid {}'.format(p.pid))
             p.kill()
 
 
@@ -112,8 +120,7 @@ class FronthaulEmulatorSwitch(threading.Thread):
 
 def config_metric(cfg_tuple, network):
     p = configparser.ConfigParser()
-
-
+    log = logging.getLogger(__name__)
     with open(cfg_tuple[1], 'r') as f:
         p.read_file(f)
 
@@ -123,25 +130,32 @@ def config_metric(cfg_tuple, network):
         tp = p.getfloat(sta, 'throughput')
         wlan = p.get(sta, 'wlan')
 
-        clients = 1
+        clients = None
         for n in network['networks']:
             if n['wlan_code'] != wlan:
                 break
             sta_index = int(name.split('STA_{}'.format(wlan))[1]) - 1
             clients = n['stas'][sta_index]['clients']
 
+        if clients is None:
+            log.warn('No client number specified for {}. Defaulting to 1.'.format(name))
+            clients = 1
+
         try:
             metric += math.log(tp / clients) * clients if clients > 0 else 0
         except ValueError as e:
-            pass
-            # print('{} for {}->tp = {} in {}'.format(e, name, tp, cfg_tuple[1]))
+            log.debug('{} for {}->tp = {} in {}'.format(e, name, tp, cfg_tuple[1]))
 
     return metric
 
+
 def config_parse_proxy(file):
-    return terranet.config.Config.from_file(file)
+    return terranet.config.Config.from_file(file)  # This is necessary to allow pickling for pool.map()
+
 
 def run(args):
+    log = logging.getLogger(__name__)
+
     pool = multiprocessing.Pool()
     join_cfg_paths = functools.partial(os.path.join, args.cfg_path)
     cfg_files = pool.map(join_cfg_paths,
@@ -150,7 +164,7 @@ def run(args):
     cfg_files.sort()
 
     if len(cfg_files) < 1:
-        print('No configuration files found. Exiting...')
+        log.error('No configuration files found. Exiting...')
         pool.close()
         sys.exit(-1)
 
@@ -161,24 +175,24 @@ def run(args):
     out_files.sort()
 
     if len(out_files) != len(cfg_files):
-        print('Missing simulation results for given configurations!')
+        log.error('Missing simulation results for given configurations!')
         pool.close()
         sys.exit(-1)
 
-    print('Found {} configurations and corresponding simulation results.'.format(len(cfg_files)))
-    print('Parsing...')
+    log.info('Found {} configurations and corresponding simulation results.'.format(len(cfg_files)))
+    log.info('Parsing...')
     tn_configs = pool.map(config_parse_proxy, cfg_files)
     cfg_tuples = zip(tn_configs, out_files)
     pool.close()
 
-    print('Searching results for default configuration...')
+    log.info('Searching results for default configuration...')
     default = list(filter(lambda cfg_tup: False not in
                                           map(lambda ap: int(ap.max_channel_allowed) - int(ap.min_channel_allowed) == 7,
                                               cfg_tup[0].get_access_points()),
                           cfg_tuples))[0]
 
     limiter = terranet.FronthaulEmulator(cfg_tuples, args.config_port, starting_index=cfg_tuples.index(default))
-    print('Generating ipmininet topology...')
+    log.info('Generating ipmininet topology...')
 
     with open(args.network) as f:
         network_json = json.load(f)
@@ -186,7 +200,7 @@ def run(args):
     topo = terranet.TerraNetTopo.from_network_dict(network_json, limiter)
     net = terranet.TerraNet(topo=topo)
 
-    print('Starting ipmininet...')
+    log.info('Starting ipmininet...')
     net.start()
 
     key = functools.partial(config_metric, network=network_json)
@@ -220,11 +234,13 @@ def run(args):
     try:
         raw_input('Press any key to exit')
     finally:
-        print('Stopping...')
-        print('Terminating Web server...')
-        topo_server.terminate()
+        log.info('Stopping...')
 
-        print('Stopping Iperf client processes...')
+        log.info('Terminating Web server...')
+        topo_server.terminate()
+        log.info('Terminated Web server.')
+
+        log.info('Stopping Iperf client processes...')
 
         for t in iperf_threads:
             t.running = False
@@ -232,14 +248,15 @@ def run(args):
         for t in iperf_threads:
             t.join()
 
-        print('Stopping flipswitch...')
+        log.info('Stopping flipswitch...')
 
         flipswitch.running = False
         flipswitch.join()
         s.close()
 
-        print('Stopping mininet...')
+        log.info('Stopping mininet...')
         net.stop()
+        log.info('Mininet stopped.')
 
 
 def channel_combinations():
@@ -303,9 +320,13 @@ def generator_worker((iteration, channels), network, max_digits):
 
 
 def generate(args):
+    log = logging.getLogger(__name__)
 
-    with open(args.topology, 'r') as f:
-        network = json.load(f)
+    try:
+        with open(args.topology, 'r') as f:
+            network = json.load(f)
+    except OSError as e:
+        log.exception('Unable to open network description!')
 
     ap_combinations = list(itertools.product(channel_combinations(),
                                              repeat=len(network["networks"])))
@@ -317,7 +338,7 @@ def generate(args):
     pool.map(worker_func, enumerate(ap_combinations))
     pool.close()
 
-    print('Generated {} configurations.'.format(len(ap_combinations)))
+    log.info('Generated {} configurations.'.format(len(ap_combinations)))
 
 
 def init(q):
@@ -326,10 +347,14 @@ def init(q):
 
 
 def simulate(args):
+    log = logging.getLogger(__name__)
     if not os.path.isdir(args.cfg_dir):
-        raise ValueError("--cfg_dir must be a valid directory.")
+        log.error("--cfg_dir must be a valid directory.")
+        return -1
+
     if not os.path.isdir(args.out_dir):
-        raise ValueError("--out_dir must be a valid directory.")
+        log.error("--out_dir must be a valid directory.")
+        return -1
 
     dirs = {"cfg": args.cfg_dir, "out": args.out_dir}
     komondor_args = {"time": args.time, "seed": args.seed}
@@ -338,7 +363,8 @@ def simulate(args):
         lambda x: x.endswith(".cfg"),
         os.listdir(dirs["cfg"])
     ))
-    print('Found {} configurations to simulate.'.format(len(cfg_files)))
+
+    log.info('Found {} configurations to simulate.'.format(len(cfg_files)))
     q = multiprocessing.Queue()
     bar = progress.bar.Bar('Simulating combinations', max=len(cfg_files))
     pool = multiprocessing.Pool(args.processes, initializer=init, initargs=(q,))
@@ -362,8 +388,8 @@ def simulate(args):
             q.get(False)
             bar.next()
         except:
-            print('Timeout while waiting.')
-            pass
+            log.debug('Timeout while waiting.')
+
     try:
         async_res.get()  # Get result to trigger possible exceptions
     except RuntimeError as e:
@@ -372,7 +398,7 @@ def simulate(args):
     t2 = time.time()
     pool.close()
     bar.finish()
-    print('Completed {} simulations in {} seconds.'.format(len(cfg_files), t2 - t1))
+    log.info('Completed {} simulations in {} seconds.'.format(len(cfg_files), t2 - t1))
 
 
 def komondor_worker(cfg, dirs, komondor=None, komondor_args=None):
