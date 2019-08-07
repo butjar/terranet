@@ -9,7 +9,6 @@ import configparser
 import zmq
 import threading
 import select
-import time
 
 import ipmininet.utils
 import terranet
@@ -111,8 +110,9 @@ class FronthaulEmulatorSwitch(threading.Thread):
         sub.close()
 
 
-def config_metric(cfg_tuple, net):
+def config_metric(cfg_tuple, network):
     p = configparser.ConfigParser()
+
 
     with open(cfg_tuple[1], 'r') as f:
         p.read_file(f)
@@ -121,16 +121,22 @@ def config_metric(cfg_tuple, net):
     for sta in filter(lambda s: s.startswith('Node_'), p.sections()):
         name = sta.split('Node_')[1]
         tp = p.getfloat(sta, 'throughput')
+        wlan = p.get(sta, 'wlan')
+
+        clients = 1
+        for n in network['networks']:
+            if n['wlan_code'] != wlan:
+                break
+            sta_index = int(name.split('STA_{}'.format(wlan))[1]) - 1
+            clients = n['stas'][sta_index]['clients']
 
         try:
-            metric += math.log(tp)
+            metric += math.log(tp / clients) * clients if clients > 0 else 0
         except ValueError as e:
             pass
             # print('{} for {}->tp = {} in {}'.format(e, name, tp, cfg_tuple[1]))
-        # TODO Factor in number of (active) clients
 
     return metric
-
 
 def config_parse_proxy(file):
     return terranet.config.Config.from_file(file)
@@ -173,13 +179,17 @@ def run(args):
 
     limiter = terranet.FronthaulEmulator(cfg_tuples, args.config_port, starting_index=cfg_tuples.index(default))
     print('Generating ipmininet topology...')
-    topo = terranet.TerraNetTopo.from_komondor_config(cfg_tuples[0][0], limiter)
+
+    with open(args.network) as f:
+        network_json = json.load(f)
+
+    topo = terranet.TerraNetTopo.from_network_dict(network_json, limiter)
     net = terranet.TerraNet(topo=topo)
 
     print('Starting ipmininet...')
     net.start()
 
-    key = functools.partial(config_metric, net=net)
+    key = functools.partial(config_metric, network=network_json)
     best = sorted(cfg_tuples, key=key, reverse=True)[0]
 
     # Should be built before drawing
@@ -426,7 +436,8 @@ if __name__ == '__main__':
 
     run_parser = subparsers.add_parser('run', help='Run emulated Terranet in Mininet.')
     run_parser.set_defaults(func=run)
-    run_parser.add_argument('cfg_path', help='Path to topology files for komondor simulation')
+    run_parser.add_argument('network', help='Path to JSON file describing the network')
+    run_parser.add_argument('cfg_path', help='Path to configuration files for komondor simulation')
     run_parser.add_argument('out_path', help='Path to the simulation results')
     run_parser.add_argument('-t', '--topo-port',
                             help='Set port of web server serving the topology image. Defaults to 6666.',

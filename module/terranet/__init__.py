@@ -1,3 +1,4 @@
+# coding=utf-8
 import json
 import threading
 import zmq
@@ -162,6 +163,7 @@ class DistributionNode(ipmininet.router.Router):
         if if_name is None:
             print('No interface found for ClientNode %s' % cn_name)
             return
+
         burst_kbit = burst // 1024
         cmd = 'tc qdisc add dev %s root tbf rate %dbit burst %dkbit latency %0.3fms' % (
             if_name, rate, burst_kbit, latency)
@@ -241,6 +243,45 @@ class TerraNetGateway(ipmininet.router.Router):
 
 
 class TerraNetTopo(ipmininet.iptopo.IPTopo):
+    @classmethod
+    def from_network_dict(cls, network, fh_emulator):
+        topo = cls()
+        for n in network['networks']:
+            ap_name = 'AP_{}'.format(n['wlan_code'])
+            topo.addRouter(ap_name, cls=DistributionNode, fronthaul_emulator=fh_emulator, wlan=n['wlan_code'],
+                           pos=(float(n['ap']['x']), float(n['ap']['y'])),
+                           config=OpenrConfig, privateDirs=['/tmp', '/var/log'])
+
+            for i, sta in enumerate(n['stas']):
+                sta_name = 'STA_{}{}'.format(n['wlan_code'], i + 1)
+                topo.addRouter(sta_name, cls=ClientNode, pos=(float(sta['x']), float(sta['y'])), config=OpenrConfig,
+                               privateDirs=['/tmp', '/var/log'])
+
+                topo.addLink(ap_name, sta_name)  # TODO: Add Link cls
+
+                if 'clients' in sta:
+                    for i in range(1, sta['clients'] + 1):
+                        client_name = sta_name + '_C%d' % i
+                        topo.addHost(client_name, cls=TerraNetClient,
+                                     pos=(float(sta['x']) + ((i - 1) * 8), float(sta['y']) + 5 + ((i - 1) * 3)))
+                        topo.addLink(sta_name, client_name)  # Unlimited link
+
+        if 'gateway' in network:  # aka. MysteryBox™
+            gw = network['gateway']
+            topo.addRouter('gw', cls=TerraNetGateway, dev='enp0s3', config=OpenrConfig,
+                           pos=(float(gw['x']), float(gw['y'])),
+                           privateDirs=['/tmp', '/var/log'])  # Gateway -- Not a DN
+
+        if 'backhaul_links' in network:
+            for l in network['backhaul_links']:
+                src = 'AP_{}'.format(l[0]) if l[0] != 'gw' else 'gw'
+                dst = 'AP_{}'.format(l[1]) if l[1] != 'gw' else 'gw'
+                topo.addLink(src, dst)  # TODO: Add Link cls ---> Make link to gateway unlimited
+        else:
+            raise ValueError('No backhaul links set in network!!')
+
+        return topo
+
     @classmethod
     def from_komondor_config(cls, cfg, fh_emulator):
         topo = cls()

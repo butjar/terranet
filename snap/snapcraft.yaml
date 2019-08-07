@@ -9,7 +9,8 @@ description: |
   store.
 
 grade: devel # must be 'stable' to release into candidate/stable channels
-confinement: devmode # use 'strict' once you have the right plugs and slots
+confinement: devmode #  <<<-DevMode needed due to Python multiprocessing opening files in /dev/shm
+
 
 apps:
   terranet:
@@ -17,8 +18,13 @@ apps:
     plugs:
       - home
       - network-bind
+      - network-control
       - network-manager
-
+  clean:
+    command: usr/bin/mn -c
+    plugs:
+      - network-control
+      - network-manager
 
 parts:
   komondor-snap:
@@ -71,4 +77,6 @@ parts:
       snapcraftctl pull
       sed -i "s|'mininet',||" setup.py
     after: ['python-interpreter', 'mininet']
+    stage-packages: #Needed for sshd
+      - openssh-client
 
