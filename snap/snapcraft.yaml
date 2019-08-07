@@ -71,6 +71,7 @@ parts:
 
   ipmininet:
     source: https://github.com/cnp3/ipmininet.git
+    source-commit: d2ce6e12ceb78d8dc185088cde86acdb00d252a9
     plugin: python
     python-version: python2
     override-pull: |
