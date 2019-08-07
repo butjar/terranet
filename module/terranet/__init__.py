@@ -65,41 +65,6 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
 
         return topo
 
-    @classmethod
-    def from_komondor_config(cls, cfg, fh_emulator):
-        topo = cls()
-        prev = None
-        for ap in cfg.get_access_points():
-            topo.addRouter(ap.short(), cls=DistributionNode, fronthaul_emulator=fh_emulator, wlan=ap.wlan_code,
-                           pos=(float(ap.x), float(ap.y)),
-                           config=OpenrConfig, privateDirs=['/tmp', '/var/log'])
-
-            if prev is not None:
-                topo.addLink(prev.short(), ap.short())
-
-            for sta in filter(lambda s: s.wlan_code == ap.wlan_code, cfg.get_stations()):
-                topo.addRouter(sta.short(), cls=ClientNode, pos=(float(sta.x), float(sta.y)), config=OpenrConfig,
-                               privateDirs=['/tmp', '/var/log'])
-                topo.addLink(ap.short(), sta.short())
-
-                num_clients = 1  # TODO  For now every station gets three clients, make this configurable
-                for i in range(1, num_clients + 1):
-                    client_name = sta.short() + '_C%d' % i
-                    topo.addHost(client_name, cls=TerraNetClient,
-                                 pos=(float(sta.x) + ((i - 1) * 8), float(sta.y) + 5 + ((i - 1) * 3)))
-                    topo.addLink(sta.short(), client_name)
-
-            prev = ap
-
-        # TODO Gateway + Controller instance.
-        # --> idea: take an external intf and drag it into gw namespace. Then make gw a NAT node
-        # Problems: no IPv6 at TUB :_( + IPv4 Routing screwed up in OpenR
-        topo.addRouter('gw', cls=TerraNetGateway, dev='enp0s3', config=OpenrConfig,
-                       pos=(float(prev.x) + 20, float(prev.y)),
-                       privateDirs=['/tmp', '/var/log'])  # Gateway -- Not a DN
-        topo.addLink(prev.short(), 'gw')
-
-        return topo
 
 
 class TerraNet(ipmininet.ipnet.IPNet):
