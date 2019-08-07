@@ -7,6 +7,7 @@ import copy
 import sys
 import os
 import select
+import logging
 
 import ipmininet.ipnet
 import ipmininet.iptopo
@@ -144,15 +145,17 @@ class DistributionNode(ipmininet.router.Router):
         return p
 
     def apply_local_config(self, cfg):
+        log = logging.getLogger(__name__)
         if not self.fh_emulator.change_global_config(self.name, cfg):
-            print('Could not apply new local config for DN %s' % self.name)
+            log.error('Could not apply new local config for DN %s' % self.name)
         else:
-            print('Applied new config for DN %s' % self.name)
+            log.info('Applied new config for DN %s' % self.name)
 
         sys.stdout.flush()
 
     def limit(self, cn_name, rate, burst, latency):
-        print('LIMIT %s' % cn_name)
+        log = logging.getLogger(__name__)
+        log.debug('LIMIT %s' % cn_name)
         if_name = None
         for i in self.intfList():
             if cn_name in [i.link.intf1.node.name, i.link.intf2.node.name]:
@@ -160,7 +163,7 @@ class DistributionNode(ipmininet.router.Router):
                 break
 
         if if_name is None:
-            print('No interface found for ClientNode %s' % cn_name)
+            log.error('No interface found for ClientNode %s' % cn_name)
             return
 
         burst_kbit = burst // 1024
@@ -172,7 +175,7 @@ class DistributionNode(ipmininet.router.Router):
         self.cmdPrint(cmd)  # Just to make sure. This is lazy. I know.
 
     def handle_ap_daemon(self):
-
+        log = logging.getLogger(__name__)
         # Make sure we are starting the current interpreter, with all the required modules.
         python_path = sys.executable
         if not python_path:
@@ -181,11 +184,11 @@ class DistributionNode(ipmininet.router.Router):
         self.ap_daemon = self.popen('{} -m terranet.ap_daemon'.format(python_path))
         out = self.ap_daemon.stdout
         err = self.ap_daemon.stderr
-        print('Starting AP daemon ({pid})'.format(pid=self.ap_daemon.pid))
+        log.info('Starting AP daemon ({pid})'.format(pid=self.ap_daemon.pid))
         while self.running:
             readfds, _, _ = select.select([out, err], [], [], 3.0)
             if err in readfds:
-                print(err.readline().strip())
+                log.debug(err.readline().strip())
             if out not in readfds:
                 continue
             line = out.readline()
@@ -196,11 +199,11 @@ class DistributionNode(ipmininet.router.Router):
                 new_cfg = json.loads(line)
                 self.apply_local_config(new_cfg)
             except ValueError as e:
-                print('Ignoring invalid config: %s' % e)
-                print('Line: {}'.format(line.strip()))
+                log.debug('Ignoring invalid config: %s' % e)
+                log.debug('Line: {}'.format(line.strip()))
 
         os.kill(-1 * self.ap_daemon.pid, 9)
-        print('AP daemon exited.')
+        log.info('AP daemon exited.')
 
 
 class ClientNode(ipmininet.router.Router):
