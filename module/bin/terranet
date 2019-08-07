@@ -52,13 +52,21 @@ class PseudoMeterer(threading.Thread):
             p = self.src.popen('iperf -y c -V -t {} -i 5 -c {}'.format(duration, ip6))
             log.info('Started iperf process for client {} ({}).'.format(self.dst.name, ip6))
 
-            while p.poll() is None and self.running:
+            while self.running:
+
                 rlist, _, _ = select.select([p.stdout, p.stderr], [], [], 7)
 
                 if p.stderr in rlist:
-                    log.warn(p.stderr.readline())
+                    err = p.stderr.readline()
+
+                    if err != "":
+                        log.warn('Iperf encountered an error.')
+                        log.warn(p.stderr.readline())
+
+                if p.poll() is not None:
+                    log.warn('Iperf process for client {} exited unexpectedly.'.format(self.dst.name))
                     time.sleep(3)
-                    continue
+                    break
 
                 if p.stdout in rlist:
                     o = p.stdout.readline()
@@ -138,7 +146,7 @@ def config_metric(cfg_tuple, network):
             clients = n['stas'][sta_index]['clients']
 
         if clients is None:
-            log.warn('No client number specified for {}. Defaulting to 1.'.format(name))
+            log.debug('No client number specified for {}. Defaulting to 1.'.format(name))
             clients = 1
 
         try:
@@ -414,8 +422,12 @@ def komondor_worker(cfg, dirs, komondor=None, komondor_args=None):
 
     return stderr
 
+def init_logging():
+    logging.basicConfig(level=logging.INFO)
+
 
 if __name__ == '__main__':
+    init_logging()
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
 
