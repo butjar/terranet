@@ -215,7 +215,8 @@ def run(args):
     best = sorted(cfg_tuples, key=key, reverse=True)[0]
 
     # Should be built before drawing
-    terranet.draw_network(net, '/tmp/topology.png')
+    # terranet.draw_network(net, '/tmp/topology.png')
+    net.draw('/tmp/topology.png')
     topo_server = subprocess.Popen(['python2', '-m', 'SimpleHTTPServer', '{}'.format(args.topo_port)],
                                    cwd='/tmp/',
                                    stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'),

@@ -73,24 +73,28 @@ class TerraNet(ipmininet.ipnet.IPNet):
         for client in filter(lambda h: isinstance(h, TerraNetClient), self.hosts):
             client.start()
 
+    def to_multigraph(self):
+        g = networkx.MultiGraph()
 
-def draw_network(net, path):
-    g = net.topo.convertTo(networkx.MultiGraph)
-    positions = {}
-    color = {}
-    matplotlib.pyplot.switch_backend('agg')
-    for name in net:
-        n = net[name]
-        positions[n.name] = n.pos
-        if isinstance(n, TerraNetClient):
-            color[n.name] = 'g'
-        elif isinstance(n, ClientNode):
-            color[n.name] = 'orange'
-        else:
-            color[n.name] = 'r'
+        g.add_nodes_from(filter(lambda h: isinstance(h, DistributionNode), [self[name] for name in self]), color='r')
+        g.add_nodes_from(filter(lambda h: isinstance(h, ClientNode), [self[name] for name in self]), color='orange')
+        g.add_nodes_from(filter(lambda h: isinstance(h, TerraNetClient), [self[name] for name in self]), color='g')
 
-    nodelist = g.nodes()
-    colorlist = list(map(lambda n: color[n], nodelist))
+        g.add_edges_from([(l.intf1.node, l.intf2.node) for l in self.links])
+        return g
 
-    networkx.draw(g, pos=positions, nodelist=nodelist, node_color=colorlist, node_size=1e3, with_labels=True)
-    matplotlib.pyplot.savefig(path)
+    def draw(self, path):
+        g = self.to_multigraph()
+        matplotlib.pyplot.switch_backend('agg')
+
+        nodelist = g.nodes
+
+        positions = {}
+        for n in g.nodes:
+            positions[n] = n.pos
+
+        colorlist = map(lambda n: n[1]['color'] if 'color' in n[1] else 'b', g.nodes(data=True))
+
+        networkx.draw(g, pos=positions, nodelist=nodelist, node_color=colorlist, node_size=1e3, with_labels=True)
+        matplotlib.pyplot.savefig(path)
+
