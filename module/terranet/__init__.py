@@ -4,6 +4,7 @@ import ipmininet.ipnet
 import ipmininet.iptopo
 import ipmininet.router.config as ipcfg
 import ipmininet.utils
+import threading
 
 from .node import TerraNetClient, TerraNetGateway, DistributionNode, ClientNode, FronthaulEmulator
 from ipmininet.cli import IPCLI
@@ -67,8 +68,8 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
         return topo
 
 
-
 class TerraNet(ipmininet.ipnet.IPNet):
+
     def start(self):
         super(TerraNet, self).start()
         for client in filter(lambda h: isinstance(h, TerraNetClient), self.hosts):

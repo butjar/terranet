@@ -13,6 +13,8 @@ import ipmininet.router
 import ipmininet.ipnet
 
 
+g_subprocess_lock = threading.Lock()
+
 class FronthaulEmulator:
     def __init__(self, cfg_tuples, pub_port, starting_index=0):
         self.cfg_tuples = cfg_tuples
@@ -122,7 +124,8 @@ class DistributionNode(ipmininet.router.Router):
         super(DistributionNode, self).terminate()
 
     def popen(self, *args, **kwargs):
-        p = super(DistributionNode, self).popen(*args, **kwargs)
+        with g_subprocess_lock:
+            p = super(DistributionNode, self).popen(*args, **kwargs)
         self.processes.append(p)
         return p
 
@@ -210,7 +213,8 @@ class TerraNetClient(ipmininet.ipnet.Host):
         super(TerraNetClient, self).terminate()
 
     def popen(self, *args, **kwargs):
-        p = super(TerraNetClient, self).popen(*args, **kwargs)
+        with g_subprocess_lock:
+            p = super(TerraNetClient, self).popen(*args, **kwargs)
         self.processes.append(p)
         return p
 
@@ -221,6 +225,22 @@ class TerraNetClient(ipmininet.ipnet.Host):
 class TerraNetGateway(ipmininet.router.Router):
     def __init__(self, name, dev, pos=None, **params):
         self.pos = pos
+        self.processes = []
         super(TerraNetGateway, self).__init__(name, **params)
         # TODO: Make this work, without the disappearing intf afterwards
         # ipmininet.link.PhysicalInterface(dev, node=self) # Adds external interface to node
+
+    def popen(self, *args, **kwargs):
+        with g_subprocess_lock:
+            p = super(TerraNetGateway, self).popen(*args, **kwargs)
+        self.processes.append(p)
+        return p
+
+    def terminate(self):
+        for p in self.processes:
+            try:
+                os.kill(-1 * p.pid, 9)
+            except OSError:
+                pass
+        super(TerraNetGateway, self).terminate()
+

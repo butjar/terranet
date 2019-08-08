@@ -27,7 +27,6 @@ import jinja2
 
 from terranet.komondor import Komondor
 
-test_lock = threading.Lock()
 
 class PseudoMeterer(threading.Thread):
     def __init__(self, src, dst, socket, zmq_lock):
@@ -58,10 +57,9 @@ class PseudoMeterer(threading.Thread):
             duration = 3000  # Make it very long to have stable flows.
             cmd = 'iperf -y c -V -t {} -i 5 -c {}'.format(duration, ip6)
 
-            with test_lock:
-                log.debug('Starting iperf for client {} with: {}'.format(self.dst.name, cmd))
-                p = self.src.popen(cmd)
-                log.info('Started iperf process for client {} ({}).'.format(self.dst.name, ip6))
+            log.debug('Starting iperf for client {} with: {}'.format(self.dst.name, cmd))
+            p = self.src.popen(cmd)
+            log.info('Started iperf process for client {} ({}).'.format(self.dst.name, ip6))
 
             while self.running:
                 rlist, _, _ = select.select([p.stdout, p.stderr], [], [], 7)
