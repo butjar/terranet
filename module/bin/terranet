@@ -10,6 +10,7 @@ import zmq
 import threading
 import select
 import logging
+import logging.handlers
 
 import ipmininet.utils
 import terranet
@@ -26,42 +27,55 @@ import jinja2
 
 from terranet.komondor import Komondor
 
+test_lock = threading.Lock()
 
 class PseudoMeterer(threading.Thread):
-    def __init__(self, src, dst, socket, lock):
+    def __init__(self, src, dst, socket, zmq_lock):
         super(PseudoMeterer, self).__init__()
         self.running = False
         self.dst = dst
         self.src = src
         self.socket = socket
-        self.lock = lock
+        self.zmq_lock = zmq_lock
 
     def run(self):
         self.running = True
         log = logging.getLogger(__name__)
+        log.debug('Entering Iperf thread for client {}.'.format(self.dst.name))
 
         topic = 'flows/{}'.format(self.dst.name)
         p = None
-        while self.running:
+        ip6 = None
+        while ip6 is None:
             _, ip6 = ipmininet.utils.address_pair(self.dst)
             if ip6 is None:
+                log.debug('Waiting for IPv6 address of client {}'.format(self.dst.name))
                 time.sleep(3)
                 continue
 
+        while self.running:
+
             duration = 3000  # Make it very long to have stable flows.
-            p = self.src.popen('iperf -y c -V -t {} -i 5 -c {}'.format(duration, ip6))
-            log.info('Started iperf process for client {} ({}).'.format(self.dst.name, ip6))
+            cmd = 'iperf -y c -V -t {} -i 5 -c {}'.format(duration, ip6)
+
+            with test_lock:
+                log.debug('Starting iperf for client {} with: {}'.format(self.dst.name, cmd))
+                p = self.src.popen(cmd)
+                log.info('Started iperf process for client {} ({}).'.format(self.dst.name, ip6))
 
             while self.running:
-
                 rlist, _, _ = select.select([p.stdout, p.stderr], [], [], 7)
+
+                if not rlist:
+                    log.warning('Iperf process for client {} timed out.'.format(self.dst.name))
+                    continue
 
                 if p.stderr in rlist:
                     err = p.stderr.readline()
 
                     if err != "":
-                        log.warn('Iperf encountered an error.')
-                        log.warn(p.stderr.readline())
+                        err_out = p.stderr.readline()
+                        log.warn('Iperf for client {} encountered an error: {} '.format(self.dst.name, err_out))
 
                 if p.poll() is not None:
                     log.warn('Iperf process for client {} exited unexpectedly.'.format(self.dst.name))
@@ -82,7 +96,7 @@ class PseudoMeterer(threading.Thread):
 
                     log.debug('Payload for client {}({}): {}'.format(self.dst.name, ip6, payload))
 
-                    with self.lock:
+                    with self.zmq_lock:
                         try:
                             # NOBLOCK necessary to prevent deadlock
                             self.socket.send(topic, flags=zmq.SNDMORE | zmq.NOBLOCK)
@@ -92,7 +106,7 @@ class PseudoMeterer(threading.Thread):
 
             log.info('Iperf process for client {} ({}) exited.'.format(self.dst.name, ip6))
 
-        if p:
+        if p and p.poll() is None:
             log.info('Stopping iperf process with pid {}'.format(p.pid))
             p.kill()
 
@@ -141,7 +155,7 @@ def config_metric(cfg_tuple, network):
         clients = None
         for n in network['networks']:
             if n['wlan_code'] != wlan:
-                break
+                continue
             sta_index = int(name.split('STA_{}'.format(wlan))[1]) - 1
             clients = n['stas'][sta_index]['clients']
 
@@ -240,6 +254,8 @@ def run(args):
 
     try:
         terranet.IPCLI(net)
+    except:
+        log.exception('Exception in IPCLI')
     finally:
         log.info('Stopping...')
 
@@ -421,8 +437,24 @@ def komondor_worker(cfg, dirs, komondor=None, komondor_args=None):
 
     return stderr
 
+
 def init_logging():
-    logging.basicConfig(level=logging.INFO)
+
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+
+    format = logging.Formatter()
+
+    s = logging.StreamHandler()
+    s.setLevel(logging.INFO)
+    s.setFormatter(format)
+
+    f = logging.handlers.RotatingFileHandler('/tmp/terranet.log', maxBytes=1024**2, backupCount=1)
+    f.setLevel(logging.DEBUG)
+    f.setFormatter(format)
+
+    root.addHandler(s)
+    root.addHandler(f)
 
 
 if __name__ == '__main__':
