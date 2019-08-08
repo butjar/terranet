@@ -238,10 +238,8 @@ def run(args):
     flipswitch = FronthaulEmulatorSwitch('localhost', 4567, limiter, cfg_tuples.index(default), cfg_tuples.index(best))
     flipswitch.start()
 
-    # ipmininet.cli.IPCLI(net)
-
     try:
-        raw_input('Press any key to exit')
+        terranet.IPCLI(net)
     finally:
         log.info('Stopping...')
 

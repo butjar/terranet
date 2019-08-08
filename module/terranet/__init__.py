@@ -6,6 +6,7 @@ import ipmininet.router.config as ipcfg
 import ipmininet.utils
 
 from .node import TerraNetClient, TerraNetGateway, DistributionNode, ClientNode, FronthaulEmulator
+from ipmininet.cli import IPCLI
 
 import networkx
 import matplotlib.pyplot
