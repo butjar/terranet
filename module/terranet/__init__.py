@@ -7,6 +7,7 @@ import ipmininet.utils
 import threading
 
 from .node import TerraNetClient, TerraNetGateway, DistributionNode, ClientNode, FronthaulEmulator
+from .link import TerraNetLink, TerraNetIntf
 from ipmininet.cli import IPCLI
 
 import networkx
@@ -42,7 +43,7 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
                 topo.addRouter(sta_name, cls=ClientNode, pos=(float(sta['x']), float(sta['y'])), config=OpenrConfig,
                                privateDirs=['/tmp', '/var/log'])
 
-                topo.addLink(ap_name, sta_name)  # TODO: Add Link cls
+                topo.addLink(ap_name, sta_name, cls=TerraNetLink, intf=TerraNetIntf)
 
                 if 'clients' in sta:
                     for i in range(1, sta['clients'] + 1):
@@ -61,7 +62,7 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
             for l in network['backhaul_links']:
                 src = 'AP_{}'.format(l[0]) if l[0] != 'gw' else 'gw'
                 dst = 'AP_{}'.format(l[1]) if l[1] != 'gw' else 'gw'
-                topo.addLink(src, dst)  # TODO: Add Link cls ---> Make link to gateway unlimited
+                topo.addLink(src, dst, cls=TerraNetLink, intf=TerraNetIntf)  # Link to gateway should be unlimited
         else:
             raise ValueError('No backhaul links set in network!!')
 

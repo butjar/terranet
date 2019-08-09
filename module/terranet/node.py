@@ -12,6 +12,7 @@ import zmq
 import ipmininet.router
 import ipmininet.ipnet
 
+from .link import TerraNetIntf
 
 g_subprocess_lock = threading.Lock()
 
@@ -32,6 +33,7 @@ class FronthaulEmulator:
         self.apply_global_config(self.current_tuple)
 
     def apply_global_config(self, cfg_tuple):
+        log = logging.getLogger(__name__)
         for dn in self.registered_dns:
             result_path = cfg_tuple[1]
             parser = configparser.ConfigParser()
@@ -42,12 +44,20 @@ class FronthaulEmulator:
             for s in parser.sections():
                 if s.startswith('Node_') and 'wlan' in parser[s] and parser[s]['wlan'] == dn.wlan:
                     rate = max(parser.getint(s, 'throughput'), 8)
-                    delay = max(parser.getfloat(s, 'delay'), 0.001)
-                    delay = 10.0  # FIXME I think delay is not what we think it is.
-                    burst = 0.5 * rate  # TODO: is this the right thing to do?
-                    burst = 32e3
+
                     cn_name = s.split('Node_')[1]
-                    dn.limit(cn_name, rate, burst, delay)
+                    intf = None
+                    for i in filter(lambda i: isinstance(i, TerraNetIntf), dn.intfList()):
+                        if cn_name in [i.link.intf1.node.name, i.link.intf2.node.name]:
+                            intf = i
+                            break
+
+                    if intf is None:
+                        log.error('No interface found for ClientNode %s' % cn_name)
+                        continue
+
+                    intf.set_tbf(rate)
+
 
         text = ''
         for ap in cfg_tuple[0].get_access_points():
@@ -129,6 +139,14 @@ class DistributionNode(ipmininet.router.Router):
         self.processes.append(p)
         return p
 
+    def cmd(self, *args, **kwargs):
+        """
+        Overwriting cmd including the global subprocess lock. This will block ALL nodes from running commands in the
+        meantime. DO NOT USE IF YOUR CMD IS A LONG RUNNING PROCESS! In this case use popen() instead.
+        """
+        with g_subprocess_lock:
+            return super(DistributionNode, self).cmd(*args, **kwargs)
+
     def apply_local_config(self, cfg):
         log = logging.getLogger(__name__)
         if not self.fh_emulator.change_global_config(self.name, cfg):
@@ -137,27 +155,6 @@ class DistributionNode(ipmininet.router.Router):
             log.info('Applied new config for DN %s' % self.name)
 
         sys.stdout.flush()
-
-    def limit(self, cn_name, rate, burst, latency):
-        log = logging.getLogger(__name__)
-        log.debug('LIMIT %s' % cn_name)
-        if_name = None
-        for i in self.intfList():
-            if cn_name in [i.link.intf1.node.name, i.link.intf2.node.name]:
-                if_name = i.name
-                break
-
-        if if_name is None:
-            log.error('No interface found for ClientNode %s' % cn_name)
-            return
-
-        burst_kbit = burst // 1024
-        cmd = 'tc qdisc add dev %s root tbf rate %dbit burst %dkbit latency %0.3fms' % (
-            if_name, rate, burst_kbit, latency)
-        cmd_replace = 'tc qdisc replace dev %s root tbf rate %dbit burst %dkbit latency %0.3fms' % (
-            if_name, rate, burst_kbit, latency)
-        self.cmdPrint(cmd_replace)  # Replace possibly existing previous rule
-        self.cmdPrint(cmd)  # Just to make sure. This is lazy. I know.
 
     def handle_ap_daemon(self):
         log = logging.getLogger(__name__)
@@ -218,6 +215,14 @@ class TerraNetClient(ipmininet.ipnet.Host):
         self.processes.append(p)
         return p
 
+    def cmd(self, *args, **kwargs):
+        """
+        Overwriting cmd including the global subprocess lock. This will block ALL nodes from running commands in the
+        meantime. DO NOT USE IF YOUR CMD IS A LONG RUNNING PROCESS! In this case use popen() instead.
+        """
+        with g_subprocess_lock:
+            return super(TerraNetClient, self).cmd(*args, **kwargs)
+
     def start(self):
         self.popen('iperf -s -V')
 
@@ -235,6 +240,14 @@ class TerraNetGateway(ipmininet.router.Router):
             p = super(TerraNetGateway, self).popen(*args, **kwargs)
         self.processes.append(p)
         return p
+
+    def cmd(self, *args, **kwargs):
+        """
+        Overwriting cmd including the global subprocess lock. This will block ALL nodes from running commands in the
+        meantime. DO NOT USE IF YOUR CMD IS A LONG RUNNING PROCESS! In this case use popen() instead.
+        """
+        with g_subprocess_lock:
+            return super(TerraNetGateway, self).cmd(*args, **kwargs)
 
     def terminate(self):
         for p in self.processes:
