@@ -16,6 +16,7 @@ from .link import TerraNetIntf
 
 g_subprocess_lock = threading.Lock()
 
+
 class FronthaulEmulator:
     def __init__(self, cfg_tuples, pub_port, starting_index=0):
         self.cfg_tuples = cfg_tuples
@@ -258,45 +259,13 @@ class TerraNetClient(ipmininet.ipnet.Host):
         self.processes.append(p)
         return p
 
-    def cmd(self, *args, **kwargs):
-        """
-        Overwriting cmd including the global subprocess lock. This will block ALL nodes from running commands in the
-        meantime. DO NOT USE IF YOUR CMD IS A LONG RUNNING PROCESS! In this case use popen() instead.
-        """
-        with g_subprocess_lock:
-            return super(TerraNetClient, self).cmd(*args, **kwargs)
-
     def start(self):
         self.popen('iperf -s -V')
 
 
-class TerraNetGateway(ipmininet.router.Router):
-    def __init__(self, name, dev, pos=None, **params):
-        self.pos = pos
-        self.processes = []
+class TerraNetGateway(TerraNetRouter):
+    def __init__(self, name, dev,  **params):
         super(TerraNetGateway, self).__init__(name, **params)
         # TODO: Make this work, without the disappearing intf afterwards
         # ipmininet.link.PhysicalInterface(dev, node=self) # Adds external interface to node
-
-    def popen(self, *args, **kwargs):
-        with g_subprocess_lock:
-            p = super(TerraNetGateway, self).popen(*args, **kwargs)
-        self.processes.append(p)
-        return p
-
-    def cmd(self, *args, **kwargs):
-        """
-        Overwriting cmd including the global subprocess lock. This will block ALL nodes from running commands in the
-        meantime. DO NOT USE IF YOUR CMD IS A LONG RUNNING PROCESS! In this case use popen() instead.
-        """
-        with g_subprocess_lock:
-            return super(TerraNetGateway, self).cmd(*args, **kwargs)
-
-    def terminate(self):
-        for p in self.processes:
-            try:
-                os.kill(-1 * p.pid, 9)
-            except OSError:
-                pass
-        super(TerraNetGateway, self).terminate()
 
