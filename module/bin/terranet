@@ -12,7 +12,6 @@ import select
 import logging
 import logging.handlers
 
-import ipmininet.utils
 import terranet
 import terranet.config
 
@@ -46,7 +45,7 @@ class PseudoMeterer(threading.Thread):
         p = None
         ip6 = None
         while ip6 is None:
-            _, ip6 = ipmininet.utils.address_pair(self.dst)
+            _, ip6 = terranet.address_pair(self.dst)
             if ip6 is None:
                 log.debug('Waiting for IPv6 address of client {}'.format(self.dst.name))
                 time.sleep(3)

@@ -4,7 +4,7 @@ import ipmininet.link
 
 
 class TerraNetIntf(ipmininet.link.IPIntf):
-    kernel_HZ = 100  # TODO We should verify that that is somehow the HZ value of the current kernel
+    kernel_HZ = 300  # TODO We should verify that that is somehow the HZ value of the current kernel
 
     def __init__(self, *args, **kwargs):
         self.bw_limited = False
@@ -24,7 +24,7 @@ class TerraNetIntf(ipmininet.link.IPIntf):
             burst = int((rate * 1.01) // (self.kernel_HZ * 8))  # Allow minimal burstiness by default.
 
         if not latency:
-            latency = 30  # ms --> High values do not hurt so much...
+            latency = 10  # ms --> High values do not hurt so much...
 
         if self.bw_limited:
             log.debug('Replacing existing bandwidth limit on intf {}.'.format(self.name))
@@ -32,11 +32,11 @@ class TerraNetIntf(ipmininet.link.IPIntf):
         else:
             cmd = 'tc qdisc add dev {} root'.format(self.name)
 
-        if burst < (rate // self.kernel_HZ * 8):
+        if burst < int(rate // (self.kernel_HZ * 8)):
             log.warning('Burst parameter is smaller than rate/HZ! The desired rate might not be achieved!')
 
         cmd += ' tbf rate {:d}bit burst {:d}b latency {:.3f}ms'.format(rate, burst, latency)
-        log.info('Setting Token Bucket Filter for {} ({:d} bit/s -- {:d} Bytes - {:.3f}ms'.format(self.name,
+        log.info('Setting Token Bucket Filter for {} ({:d} bit/s -- {:d} Bytes - {:.3f}ms)'.format(self.name,
                                                                                                   rate,
                                                                                                   burst,
                                                                                                   latency))

@@ -41,23 +41,32 @@ class FronthaulEmulator:
             with open(result_path, 'r') as f:
                 parser.read_file(f)
 
-            for s in parser.sections():
-                if s.startswith('Node_') and 'wlan' in parser[s] and parser[s]['wlan'] == dn.wlan:
-                    rate = max(parser.getint(s, 'throughput'), 8)
+            for cn in dn.client_nodes():
+                section = 'Node_{}'.format(cn.name)
 
-                    cn_name = s.split('Node_')[1]
-                    intf = None
-                    for i in filter(lambda i: isinstance(i, TerraNetIntf), dn.intfList()):
-                        if cn_name in [i.link.intf1.node.name, i.link.intf2.node.name]:
-                            intf = i
-                            break
+                try:
+                    rate = max(parser.getint(section, 'throughput'), 8)
+                except configparser.Error:
+                    log.exception('Could not find throughput for Client Node {}'.format(cn.name))
+                    continue
 
-                    if intf is None:
-                        log.error('No interface found for ClientNode %s' % cn_name)
+                fh_intf = dn.get_tn_intf(cn.name)
+
+                if fh_intf is None:
+                    log.error('No interface found for ClientNode %s' % cn.name)
+                    continue
+
+                fh_intf.set_tbf(rate)
+
+                clients = list(cn.clients())
+                for c in clients:
+                    c_intf = cn.get_tn_intf(c.name)
+
+                    if c_intf is None:
+                        log.error('No interface found for client {}'.format(c.name))
                         continue
 
-                    intf.set_tbf(rate)
-
+                    c_intf.set_tbf(rate // len(clients))
 
         text = ''
         for ap in cfg_tuple[0].get_access_points():
@@ -104,17 +113,62 @@ class FronthaulEmulator:
             return True
 
 
-class DistributionNode(ipmininet.router.Router):
-    def __init__(self, name, fronthaul_emulator, wlan, pos=None, **params):
-        self.fh_emulator = fronthaul_emulator
+class TerraNetRouter(ipmininet.router.Router):
+    def __init__(self, name, pos=None, **params):
         self.pos = pos
         self.processes = []
+        super(TerraNetRouter, self).__init__(name, **params)
+
+    def popen(self, *args, **kwargs):
+        with g_subprocess_lock:
+            p = super(TerraNetRouter, self).popen(*args, **kwargs)
+        self.processes.append(p)
+        return p
+
+    def cmd(self, *args, **kwargs):
+        """
+        Overwriting cmd including the global subprocess lock. This will block ALL nodes from running commands in the
+        meantime. DO NOT USE IF YOUR CMD IS A LONG RUNNING PROCESS! In this case use popen() instead.
+        """
+        with g_subprocess_lock:
+            return super(TerraNetRouter, self).cmd(*args, **kwargs)
+
+    def get_tn_intf(self, neighbor_name):
+        intf = None
+        for i in filter(lambda i: isinstance(i, TerraNetIntf), self.intfList()):
+            if neighbor_name in [i.link.intf1.node.name, i.link.intf2.node.name]:
+                intf = i
+                break
+        return intf
+
+    def terminate(self):
+        for p in self.processes:
+            try:
+                os.kill(-1 * p.pid, 9)
+            except OSError:
+                pass
+
+        super(TerraNetRouter, self).terminate()
+
+    def connected_nodes(self):
+        for i in filter(lambda i: isinstance(i, TerraNetIntf), self.intfList()):
+            link = i.link
+            node1, node2 = link.intf1.node, link.intf2.node
+            if node1 == self:
+                yield node2
+            elif node2 == self:
+                yield node1
+
+
+class DistributionNode(TerraNetRouter):
+    def __init__(self, name, fronthaul_emulator, wlan, *args, **params):
+        self.fh_emulator = fronthaul_emulator
         self.wlan = wlan
         self.ap_daemon_handler = threading.Thread(target=self.handle_ap_daemon)
         self.ap_daemon = None
         self.running = False
 
-        super(DistributionNode, self).__init__(name, **params)
+        super(DistributionNode, self).__init__(name, *args, **params)
 
     def start(self):
         super(DistributionNode, self).start()
@@ -133,19 +187,8 @@ class DistributionNode(ipmininet.router.Router):
         self.ap_daemon_handler.join()
         super(DistributionNode, self).terminate()
 
-    def popen(self, *args, **kwargs):
-        with g_subprocess_lock:
-            p = super(DistributionNode, self).popen(*args, **kwargs)
-        self.processes.append(p)
-        return p
-
-    def cmd(self, *args, **kwargs):
-        """
-        Overwriting cmd including the global subprocess lock. This will block ALL nodes from running commands in the
-        meantime. DO NOT USE IF YOUR CMD IS A LONG RUNNING PROCESS! In this case use popen() instead.
-        """
-        with g_subprocess_lock:
-            return super(DistributionNode, self).cmd(*args, **kwargs)
+    def client_nodes(self):
+        return filter(lambda n: isinstance(n, ClientNode), self.connected_nodes())
 
     def apply_local_config(self, cfg):
         log = logging.getLogger(__name__)
@@ -153,8 +196,6 @@ class DistributionNode(ipmininet.router.Router):
             log.error('Could not apply new local config for DN %s' % self.name)
         else:
             log.info('Applied new config for DN %s' % self.name)
-
-        sys.stdout.flush()
 
     def handle_ap_daemon(self):
         log = logging.getLogger(__name__)
@@ -188,10 +229,12 @@ class DistributionNode(ipmininet.router.Router):
         log.info('AP daemon exited.')
 
 
-class ClientNode(ipmininet.router.Router):
-    def __init__(self, name, pos=None, **params):
-        self.pos = pos
+class ClientNode(TerraNetRouter):
+    def __init__(self, name, **params):
         super(ClientNode, self).__init__(name, **params)
+
+    def clients(self):
+        return filter(lambda n: isinstance(n, TerraNetClient), self.connected_nodes())
 
 
 class TerraNetClient(ipmininet.ipnet.Host):

@@ -4,9 +4,8 @@ import ipmininet.ipnet
 import ipmininet.iptopo
 import ipmininet.router.config as ipcfg
 import ipmininet.utils
-import threading
 
-from .node import TerraNetClient, TerraNetGateway, DistributionNode, ClientNode, FronthaulEmulator
+from .node import TerraNetClient, TerraNetGateway, DistributionNode, ClientNode, FronthaulEmulator, g_subprocess_lock
 from .link import TerraNetLink, TerraNetIntf
 from ipmininet.cli import IPCLI
 
@@ -50,7 +49,7 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
                         client_name = sta_name + '_C%d' % i
                         topo.addHost(client_name, cls=TerraNetClient,
                                      pos=(float(sta['x']) + ((i - 1) * 8), float(sta['y']) + 5 + ((i - 1) * 3)))
-                        topo.addLink(sta_name, client_name)  # Unlimited link
+                        topo.addLink(sta_name, client_name, cls=TerraNetLink, intf=TerraNetIntf)
 
         if 'gateway' in network:  # aka. MysteryBox™
             gw = network['gateway']
@@ -100,4 +99,16 @@ class TerraNet(ipmininet.ipnet.IPNet):
 
         networkx.draw(g, pos=positions, nodelist=nodelist, node_color=colorlist, node_size=1e3, with_labels=True)
         matplotlib.pyplot.savefig(path)
+
+import threading
+ip_lock = threading.Lock()
+def address_pair(node):
+    with ip_lock:
+        '''
+        Some explanation for this nonsense:
+        address_pair() calls subprocess under the hood, which is not thread-safe under 2.7.
+        We **should** secure it with the g_subprocess_lock but due to some unknown dependency
+        this causes a deadlock. So we will just use a local lock and hope for the best for now.
+        '''
+        return ipmininet.utils.address_pair(node)
 
