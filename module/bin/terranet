@@ -2,6 +2,7 @@
 import argparse
 import logging
 import logging.handlers
+import os
 
 from terranet.tools import simulate, generate, run
 
@@ -16,7 +17,8 @@ def init_logging():
     s.setLevel(logging.INFO)
     s.setFormatter(format)
 
-    f = logging.handlers.RotatingFileHandler('/tmp/terranet.log', maxBytes=1024**2, backupCount=1)
+    log_path = '/tmp/terranet_{}.log'.format(os.geteuid())  # Avoiding trouble with root-owned logs
+    f = logging.handlers.RotatingFileHandler(log_path, maxBytes=1024**2, backupCount=1)
     f.setLevel(logging.DEBUG)
     f.setFormatter(format)
 
