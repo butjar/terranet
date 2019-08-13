@@ -162,6 +162,10 @@ def config_parse_proxy(file):
 def run(args):
     log = logging.getLogger(__name__)
 
+    if os.geteuid() != 0:
+        log.error('This program needs to be run as root!')
+        sys.exit(-1)
+
     pool = multiprocessing.Pool()
     join_cfg_paths = functools.partial(os.path.join, args.cfg_path)
     cfg_files = pool.map(join_cfg_paths,
