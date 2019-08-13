@@ -2,8 +2,7 @@ import threading
 import logging
 import os
 import sys
-import select
-import json
+import functools
 
 import copy
 import configparser
@@ -13,6 +12,7 @@ import ipmininet.router
 import ipmininet.ipnet
 
 from .link import TerraNetIntf
+from .channel_api import API_handler
 
 g_subprocess_lock = threading.Lock()
 
@@ -78,7 +78,7 @@ class FronthaulEmulator:
                                                                             ap.min_channel_allowed) + 1))
             self.pub.send_multipart(['config', text])
 
-    def change_global_config(self, dn_name, changes):
+    def channel_configuration_change(self, dn_name, changes):
         log = logging.getLogger(__name__)
         with self.lock:
             new_cfg = copy.deepcopy(self.current_tuple[0])
@@ -165,69 +165,26 @@ class DistributionNode(TerraNetRouter):
     def __init__(self, name, fronthaul_emulator, wlan, *args, **params):
         self.fh_emulator = fronthaul_emulator
         self.wlan = wlan
-        self.ap_daemon_handler = threading.Thread(target=self.handle_ap_daemon)
-        self.ap_daemon = None
         self.running = False
 
         super(DistributionNode, self).__init__(name, *args, **params)
 
+        f = functools.partial(self.fh_emulator.channel_configuration_change, self.name)
+        self.api_handler = API_handler(self.name, 6000, f, self.pid)
+
     def start(self):
         super(DistributionNode, self).start()
-        self.running = True
-        self.ap_daemon_handler.start()
         self.fh_emulator.register(self)
 
+        self.api_handler.start()
+
     def terminate(self):
-        self.running = False
-        for p in self.processes:
-            try:
-                if p != self.ap_daemon_handler:
-                    os.kill(-1 * p.pid, 9)
-            except OSError:
-                pass
-        self.ap_daemon_handler.join()
+        self.api_handler.running = False
+        self.api_handler.join()
         super(DistributionNode, self).terminate()
 
     def client_nodes(self):
         return filter(lambda n: isinstance(n, ClientNode), self.connected_nodes())
-
-    def apply_local_config(self, cfg):
-        log = logging.getLogger(__name__)
-        if not self.fh_emulator.change_global_config(self.name, cfg):
-            log.error('Could not apply new local config for DN %s' % self.name)
-        else:
-            log.info('Applied new config for DN %s' % self.name)
-
-    def handle_ap_daemon(self):
-        log = logging.getLogger(__name__)
-        # Make sure we are starting the current interpreter, with all the required modules.
-        python_path = sys.executable
-        if not python_path:
-            python_path = 'python'
-
-        self.ap_daemon = self.popen('{} -m terranet.ap_daemon'.format(python_path))
-        out = self.ap_daemon.stdout
-        err = self.ap_daemon.stderr
-        log.info('Starting AP daemon ({pid})'.format(pid=self.ap_daemon.pid))
-        while self.running:
-            readfds, _, _ = select.select([out, err], [], [], 3.0)
-            if err in readfds:
-                log.debug(err.readline().strip())
-            if out not in readfds:
-                continue
-            line = out.readline()
-
-            if line == '':
-                break
-            try:
-                new_cfg = json.loads(line)
-                self.apply_local_config(new_cfg)
-            except ValueError as e:
-                log.debug('Ignoring invalid config: %s' % e)
-                log.debug('Line: {}'.format(line.strip()))
-
-        os.kill(-1 * self.ap_daemon.pid, 9)
-        log.info('AP daemon exited.')
 
 
 class ClientNode(TerraNetRouter):
