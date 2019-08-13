@@ -132,7 +132,7 @@ class FronthaulEmulatorSwitch(threading.Thread):
                 with self.fh_emulator.lock:
                     index = self.best if content == 'true' else self.default
                     self.fh_emulator.current_tuple = self.fh_emulator.cfg_tuples[index]
-                    self.fh_emulator.apply_global_config(self.fh_emulator.current_tuple)
+                    self.fh_emulator.switch_config(self.fh_emulator.current_tuple)
 
         sub.close()
 

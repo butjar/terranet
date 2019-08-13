@@ -31,9 +31,9 @@ class FronthaulEmulator:
 
     def register(self, dn):
         self.registered_dns.append(dn)
-        self.apply_global_config(self.current_tuple)
+        self.switch_config(self.current_tuple)
 
-    def apply_global_config(self, cfg_tuple):
+    def switch_config(self, cfg_tuple):
         log = logging.getLogger(__name__)
         for dn in self.registered_dns:
             result_path = cfg_tuple[1]
@@ -109,7 +109,7 @@ class FronthaulEmulator:
             sys.stdout.flush()
 
             self.current_tuple = self.cfg_tuples[cfg_index]
-            self.apply_global_config(self.current_tuple)
+            self.switch_config(self.current_tuple)
 
             return True
 
