@@ -60,11 +60,11 @@ def generate_config(networks, channels):
     return terranet.config.Config(system=system, nodes=nodes)
 
 
-def generator_worker((iteration, channels), network, max_digits):
+def generator_worker((iteration, channels), network, max_digits, cfg_dir):
         config = generate_config(network["networks"], channels)
         template = get_template(config=config)
         suffix = format(iteration, "0{}".format(max_digits))
-        file_name = os.path.join(args.cfg_dir, 'terranet_{}.cfg'.format(suffix))
+        file_name = os.path.join(cfg_dir, 'terranet_{}.cfg'.format(suffix))
         with open(file_name, "w") as f:
             f.write(template)
 
@@ -83,7 +83,7 @@ def generate(args):
     max_digits = int(math.log10(len(ap_combinations))) + 1
 
     pool = multiprocessing.Pool()
-    worker_func = functools.partial(generator_worker, network=network, max_digits=max_digits)
+    worker_func = functools.partial(generator_worker, network=network, max_digits=max_digits, cfg_dir=args.cfg_dir)
     pool.map(worker_func, enumerate(ap_combinations))
     pool.close()
 
