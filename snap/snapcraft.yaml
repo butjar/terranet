@@ -62,6 +62,8 @@ parts:
       snapcraftctl pull
       sed -i 's|"ipmininet",||' setup.py
     after: ['ipmininet', 'komondor-snap', 'openr-snap']
+    stage-packages:
+      - curl
 
   mininet:
     plugin: nil

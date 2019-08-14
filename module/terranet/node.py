@@ -162,15 +162,16 @@ class TerraNetRouter(ipmininet.router.Router):
 
 
 class DistributionNode(TerraNetRouter):
-    def __init__(self, name, fronthaul_emulator, wlan, *args, **params):
+    def __init__(self, name, fronthaul_emulator, wlan, api_port=6000, *args, **params):
         self.fh_emulator = fronthaul_emulator
         self.wlan = wlan
         self.running = False
+        self.api_port = api_port
 
         super(DistributionNode, self).__init__(name, *args, **params)
 
         f = functools.partial(self.fh_emulator.channel_configuration_change, self.name)
-        self.api_handler = API_handler(self.name, 6000, f, self.pid)
+        self.api_handler = API_handler(self.name, self.api_port, f, self.pid)
 
     def start(self):
         super(DistributionNode, self).start()

@@ -1,4 +1,5 @@
 # coding=utf-8
+import logging
 
 import ipmininet.ipnet
 import ipmininet.iptopo
@@ -25,6 +26,40 @@ class OpenrConfig(ipcfg.RouterConfig):
         super(OpenrConfig, self).__init__(node,
                                           daemons=((ipcfg.Openr, defaults),),
                                           *args, **kwargs)
+
+
+class TerraNetCLI(IPCLI):
+    def do_channel(self, line):
+        log = logging.getLogger(__name__)
+        args = line.split()
+
+        if len(args) != 3:
+            log.error('Invalid number of arguments!')
+            return
+
+        try:
+            name, chan_min, chan_max = args[0], int(args[1]), int(args[2])
+        except ValueError:
+            log.error('Channel numbers must be integer literals.')
+            return
+
+        if name not in self.mn:
+            log.error('Unknown node "{}"!'.format(name))
+            return
+
+        if not isinstance(self.mn[name], DistributionNode):
+            log.error('Node {} is not an Access Point!'.format(name))
+            return
+
+        cmd = 'curl -XPUT -H "Content-type: application/json" -d '
+        cmd += '\'{{ "config": {{"min_channel_allowed": "{}", "max_channel_allowed": "{}"}}}}\' '.format(chan_min, chan_max)
+        cmd += 'http://localhost:{}/cfg/'.format(self.mn[name].api_port)
+        self.mn[name].sendCmd(cmd)
+        self.waitForNode(self.mn[name])
+
+
+
+
 
 
 class TerraNetTopo(ipmininet.iptopo.IPTopo):

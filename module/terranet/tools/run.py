@@ -13,6 +13,7 @@ import subprocess
 import multiprocessing
 import sys
 
+
 class PseudoMeterer(threading.Thread):
 
     def __init__(self, src, dst, socket, zmq_lock):
@@ -241,7 +242,7 @@ def run(args):
     flipswitch.start()
 
     try:
-        terranet.IPCLI(net)
+        terranet.TerraNetCLI(net)
     except:
         log.exception('Exception in IPCLI')
     finally:
