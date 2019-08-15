@@ -151,7 +151,12 @@ class TerraNetRouter(ipmininet.router.Router):
 
         super(TerraNetRouter, self).terminate()
 
-    def connected_nodes(self):
+    def route_exists_v6(self, ip6):
+        proc = self.popen('ip -6 route get {}'.format(ip6))
+        proc.communicate()
+        return proc.returncode == 0
+
+    def neighbours(self):
         for i in filter(lambda i: isinstance(i, TerraNetIntf), self.intfList()):
             link = i.link
             node1, node2 = link.intf1.node, link.intf2.node
@@ -159,6 +164,26 @@ class TerraNetRouter(ipmininet.router.Router):
                 yield node2
             elif node2 == self:
                 yield node1
+
+    def connected_nodes(self):
+        visited = {self}
+        node_queue = list(self.neighbours())
+        horizon = set(node_queue)
+
+        while node_queue:
+            n = node_queue.pop()
+
+            if isinstance(n, TerraNetRouter):
+                for neighbour in filter(lambda x: x not in visited and x not in horizon, n.neighbours()):
+                    node_queue.append(neighbour)
+                    horizon.add(neighbour)
+
+            visited.add(n)
+
+        visited.remove(self)
+        return visited
+
+
 
 
 class DistributionNode(TerraNetRouter):
@@ -185,7 +210,7 @@ class DistributionNode(TerraNetRouter):
         super(DistributionNode, self).terminate()
 
     def client_nodes(self):
-        return filter(lambda n: isinstance(n, ClientNode), self.connected_nodes())
+        return filter(lambda n: isinstance(n, ClientNode), self.neighbours())
 
 
 class ClientNode(TerraNetRouter):
@@ -193,7 +218,7 @@ class ClientNode(TerraNetRouter):
         super(ClientNode, self).__init__(name, **params)
 
     def clients(self):
-        return filter(lambda n: isinstance(n, TerraNetClient), self.connected_nodes())
+        return filter(lambda n: isinstance(n, TerraNetClient), self.neighbours())
 
 
 class TerraNetClient(ipmininet.ipnet.Host):
@@ -227,3 +252,8 @@ class TerraNetGateway(TerraNetRouter):
         # TODO: Make this work, without the disappearing intf afterwards
         # ipmininet.link.PhysicalInterface(dev, node=self) # Adds external interface to node
 
+    def start(self):
+        super(TerraNetRouter, self).start()
+        log = logging.getLogger(__name__)
+        for n in self.connected_nodes():
+            log.info(n.name)

@@ -64,6 +64,7 @@ parts:
     after: ['ipmininet', 'komondor-snap', 'openr-snap']
     stage-packages:
       - curl
+      - iperf
 
   mininet:
     plugin: nil

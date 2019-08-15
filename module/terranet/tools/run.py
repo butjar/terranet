@@ -31,16 +31,18 @@ class PseudoMeterer(threading.Thread):
 
         topic = 'flows/{}'.format(self.dst.name)
         p = None
-        ip6 = None
-        while ip6 is None:
-            _, ip6 = terranet.address_pair(self.dst)
-            if ip6 is None:
-                log.debug('Waiting for IPv6 address of client {}'.format(self.dst.name))
-                time.sleep(3)
-                continue
+
+        while self.dst.intf().ip6 is None and self.running:
+            log.debug('Waiting for IPv6 address of client {}'.format(self.dst.name))
+            time.sleep(3)
+
+        ip6 = self.dst.intf().ip6
+
+        while not self.src.route_exists_v6(ip6) and self.running:
+            log.debug('Waiting for route from {} to {}'.format(self.src.name, self.dst.name))
+            time.sleep(3)
 
         while self.running:
-
             duration = 3000  # Make it very long to have stable flows.
             cmd = 'iperf -y c -V -t {} -i 5 -c {}'.format(duration, ip6)
 
@@ -62,16 +64,13 @@ class PseudoMeterer(threading.Thread):
                         err_out = p.stderr.readline()
                         log.warn('Iperf for client {} encountered an error: {} '.format(self.dst.name, err_out))
 
-                if p.poll() is not None:
-                    log.warn('Iperf process for client {} exited unexpectedly.'.format(self.dst.name))
-                    time.sleep(3)
-                    break
-
                 if p.stdout in rlist:
                     o = p.stdout.readline()
 
                     if o == "":
                         break
+
+                    log.debug("Iperf stdout ({}): {}".format(self.dst.name, o))
 
                     payload = "{}".format(int(o.split(',')[8]) / 1e6)
                     time_span = float(o.split(',')[6].split('-')[1]) - float(o.split(',')[6].split('-')[0])
@@ -88,6 +87,11 @@ class PseudoMeterer(threading.Thread):
                             self.socket.send(payload, flags=zmq.NOBLOCK)
                         except zmq.ZMQError:
                             log.error('Dropping message due to full queue')
+
+                if p.poll() is not None:
+                    log.warn('Iperf process for client {} exited unexpectedly.'.format(self.dst.name))
+                    time.sleep(3)
+                    break
 
             log.info('Iperf process for client {} ({}) exited.'.format(self.dst.name, ip6))
 
