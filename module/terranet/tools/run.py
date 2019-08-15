@@ -13,93 +13,6 @@ import subprocess
 import multiprocessing
 import sys
 
-
-class PseudoMeterer(threading.Thread):
-
-    def __init__(self, src, dst, socket, zmq_lock):
-        super(PseudoMeterer, self).__init__()
-        self.running = False
-        self.dst = dst
-        self.src = src
-        self.socket = socket
-        self.zmq_lock = zmq_lock
-
-    def run(self):
-        self.running = True
-        log = logging.getLogger(__name__)
-        log.debug('Entering Iperf thread for client {}.'.format(self.dst.name))
-
-        topic = 'flows/{}'.format(self.dst.name)
-        p = None
-
-        while self.dst.intf().ip6 is None and self.running:
-            log.debug('Waiting for IPv6 address of client {}'.format(self.dst.name))
-            time.sleep(3)
-
-        ip6 = self.dst.intf().ip6
-
-        while not self.src.route_exists_v6(ip6) and self.running:
-            log.debug('Waiting for route from {} to {}'.format(self.src.name, self.dst.name))
-            time.sleep(3)
-
-        while self.running:
-            duration = 3000  # Make it very long to have stable flows.
-            cmd = 'iperf -y c -V -t {} -i 5 -c {}'.format(duration, ip6)
-
-            log.debug('Starting iperf for client {} with: {}'.format(self.dst.name, cmd))
-            p = self.src.popen(cmd)
-            log.info('Started iperf process for client {} ({}).'.format(self.dst.name, ip6))
-
-            while self.running:
-                rlist, _, _ = select.select([p.stdout, p.stderr], [], [], 7)
-
-                if not rlist:
-                    log.warning('Iperf process for client {} timed out.'.format(self.dst.name))
-                    continue
-
-                if p.stderr in rlist:
-                    err = p.stderr.readline()
-
-                    if err != "":
-                        err_out = p.stderr.readline()
-                        log.warn('Iperf for client {} encountered an error: {} '.format(self.dst.name, err_out))
-
-                if p.stdout in rlist:
-                    o = p.stdout.readline()
-
-                    if o == "":
-                        break
-
-                    log.debug("Iperf stdout ({}): {}".format(self.dst.name, o))
-
-                    payload = "{}".format(int(o.split(',')[8]) / 1e6)
-                    time_span = float(o.split(',')[6].split('-')[1]) - float(o.split(',')[6].split('-')[0])
-
-                    if time_span > duration:
-                        continue  # Skip summary line
-
-                    log.debug('Payload for client {}({}): {}'.format(self.dst.name, ip6, payload))
-
-                    with self.zmq_lock:
-                        try:
-                            # NOBLOCK necessary to prevent deadlock
-                            self.socket.send(topic, flags=zmq.SNDMORE | zmq.NOBLOCK)
-                            self.socket.send(payload, flags=zmq.NOBLOCK)
-                        except zmq.ZMQError:
-                            log.error('Dropping message due to full queue')
-
-                if p.poll() is not None:
-                    log.warn('Iperf process for client {} exited unexpectedly.'.format(self.dst.name))
-                    time.sleep(3)
-                    break
-
-            log.info('Iperf process for client {} ({}) exited.'.format(self.dst.name, ip6))
-
-        if p and p.poll() is None:
-            log.info('Stopping iperf process with pid {}'.format(p.pid))
-            p.kill()
-
-
 class FronthaulEmulatorSwitch(threading.Thread):
     def __init__(self, hostname, sub_port, fh_emulator, default, best):
         super(FronthaulEmulatorSwitch, self).__init__()
@@ -229,7 +142,6 @@ def run(args):
                                    stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'),
                                    close_fds=True)
 
-    iperf_threads = []
     gw = net['gw']
 
     zmq_lock = threading.Lock()
@@ -237,10 +149,17 @@ def run(args):
     s = ctx.socket(zmq.PUB)
     s.bind('tcp://127.0.0.1:{}'.format(args.metering_port))
 
-    for client in filter(lambda h: isinstance(h, terranet.TerraNetClient), net.hosts):
-        p = PseudoMeterer(gw, client, s, zmq_lock)
-        iperf_threads.append(p)
-        p.start()
+    def report_iperf(src, dst, payload):
+        with zmq_lock:
+            try:
+                # NOBLOCK necessary to prevent deadlock
+                topic = 'flows/{}'.format(dst.name)
+                s.send_multipart([topic, payload], flags=zmq.NOBLOCK)
+            except zmq.ZMQError as e:
+                log.error('Dropping message due to full queue')
+
+    gw.iperf_report_cb = report_iperf
+    gw.start_all_iperfs()
 
     flipswitch = FronthaulEmulatorSwitch('localhost', 4567, limiter, cfg_tuples.index(default), cfg_tuples.index(best))
     flipswitch.start()
@@ -256,23 +175,14 @@ def run(args):
         topo_server.terminate()
         log.info('Terminated Web server.')
 
-        log.info('Stopping Iperf client processes...')
-
-        for t in iperf_threads:
-            t.running = False
-
-        for t in iperf_threads:
-            t.join()
-
         log.info('Stopping flipswitch...')
-
         flipswitch.running = False
         flipswitch.join()
-        s.close()
 
         log.info('Stopping mininet...')
         net.stop()
         log.info('Mininet stopped.')
+        s.close()
 
 
 

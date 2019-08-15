@@ -3,6 +3,8 @@ import logging
 import os
 import sys
 import functools
+import time
+import select
 
 import copy
 import configparser
@@ -184,8 +186,6 @@ class TerraNetRouter(ipmininet.router.Router):
         return visited
 
 
-
-
 class DistributionNode(TerraNetRouter):
     def __init__(self, name, fronthaul_emulator, wlan, api_port=6000, *args, **params):
         self.fh_emulator = fronthaul_emulator
@@ -247,13 +247,124 @@ class TerraNetClient(ipmininet.ipnet.Host):
 
 
 class TerraNetGateway(TerraNetRouter):
-    def __init__(self, name, dev,  **params):
+    def __init__(self, name, dev, iperf_report_cb=None, **params):
+        self.connected_clients = set()
+        self.iperf_threads = {}
+        self.iperf_report_cb = iperf_report_cb
         super(TerraNetGateway, self).__init__(name, **params)
         # TODO: Make this work, without the disappearing intf afterwards
         # ipmininet.link.PhysicalInterface(dev, node=self) # Adds external interface to node
 
+    def start_all_iperfs(self):
+        for c in self.connected_clients:
+            self.start_iperf(c)
+
+    def stop_all_iperfs(self):
+        for dst in self.iperf_threads.keys():
+            self.iperf_threads[dst][1] = False
+
+        for dst in self.iperf_threads.keys():
+            self.iperf_threads[dst][0].join()
+
+    def start_iperf(self, dst):
+        log = logging.getLogger(__name__)
+        if dst not in self.iperf_threads:
+            t = threading.Thread(target=self._run_iperf, args=(dst,))
+            self.iperf_threads[dst] = [t, True]
+            t.start()
+        else:
+            log.error('Iperf from {} to {} is already running!'.format(self.name, dst.name))
+
+    def stop_iperf(self, dst):
+        log = logging.getLogger(__name__)
+        if dst not in self.iperf_threads:
+            log.error('No iperf running from {} to {}!'.format(self.name, dst.name))
+            return
+
+        log.info('Stopping iperf from {} to {}...'.format(self.name, dst.name))
+        self.iperf_threads[dst][1] = False
+        self.iperf_threads[dst][0].join()
+
+        log.info('Iperf from {} to {} stopped.'.format(self.name, dst.name))
+        del self.iperf_threads[dst]
+
+    def terminate(self):
+        self.stop_all_iperfs()
+        super(TerraNetGateway, self).terminate()
+
+    def _iperf_alive(self, dst):
+        return dst in self.iperf_threads and self.iperf_threads[dst][1]
+
+    def _run_iperf(self, dst):
+        log = logging.getLogger(__name__)
+        log.debug('Starting Iperf for client {}.'.format(dst.name))
+
+        p = None
+
+        while dst.intf().ip6 is None and self._iperf_alive(dst):
+            log.debug('Waiting for IPv6 address of client {}'.format(dst.name))
+            time.sleep(3)
+
+        ip6 = dst.intf().ip6
+
+        while not self.route_exists_v6(ip6) and self._iperf_alive(dst):
+            log.debug('Waiting for route from {} to {}'.format(self.name, dst.name))
+            time.sleep(3)
+
+        while self._iperf_alive(dst):
+            duration = 3000  # Make it very long to have stable flows.
+            cmd = 'iperf -y c -V -t {} -i 5 -c {}'.format(duration, ip6)
+
+            log.debug('Starting iperf for client {} with: {}'.format(dst.name, cmd))
+            p = self.popen(cmd)
+            log.info('Started iperf process for client {} ({}).'.format(dst.name, ip6))
+
+            while self._iperf_alive(dst):
+                rlist, _, _ = select.select([p.stdout, p.stderr], [], [], 7)
+
+                if not rlist:
+                    log.warning('Iperf process for client {} timed out.'.format(dst.name))
+                    continue
+
+                if p.stderr in rlist:
+                    err = p.stderr.readline()
+
+                    if err != "":
+                        err_out = p.stderr.readline()
+                        log.warn('Iperf for client {} encountered an error: {} '.format(dst.name, err_out))
+
+                if p.stdout in rlist:
+                    o = p.stdout.readline()
+
+                    if o == "":
+                        break
+
+                    log.debug("Iperf stdout ({}): {}".format(dst.name, o))
+
+                    payload = "{}".format(int(o.split(',')[8]) / 1e6)
+                    time_span = float(o.split(',')[6].split('-')[1]) - float(o.split(',')[6].split('-')[0])
+
+                    if time_span > duration:
+                        continue  # Skip summary line
+
+                    log.debug('Payload for client {}({}): {}'.format(dst.name, ip6, payload))
+                    if hasattr(self.iperf_report_cb, '__call__'):
+                        self.iperf_report_cb(self, dst, payload)
+
+                if p.poll() is not None:
+                    log.warn('Iperf process for client {} exited unexpectedly.'.format(dst.name))
+                    time.sleep(3)
+                    break
+
+            log.info('Iperf process for client {} ({}) exited.'.format(dst.name, ip6))
+
+        if p and p.poll() is None:
+            log.info('Stopping iperf process with pid {}'.format(p.pid))
+            p.kill()
+
     def start(self):
         super(TerraNetRouter, self).start()
         log = logging.getLogger(__name__)
-        for n in self.connected_nodes():
-            log.info(n.name)
+        log.debug('Started Terranet gateway "{}"'.format(self.name))
+        for n in filter(lambda h: isinstance(h, TerraNetClient), self.connected_nodes()):
+            self.connected_clients.add(n)
