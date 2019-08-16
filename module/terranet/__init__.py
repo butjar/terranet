@@ -6,7 +6,7 @@ import ipmininet.iptopo
 import ipmininet.router.config as ipcfg
 import ipmininet.utils
 
-from .node import TerraNetClient, TerraNetGateway, DistributionNode, ClientNode, FronthaulEmulator, g_subprocess_lock
+from .node import TerraNetClient, TerraNetGateway, DistributionNode, ClientNode, FronthaulEmulator, TerraNetRouter, g_subprocess_lock
 from .link import TerraNetLink, TerraNetIntf
 from ipmininet.cli import IPCLI
 
@@ -96,7 +96,7 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
             for l in network['backhaul_links']:
                 src = 'AP_{}'.format(l[0]) if l[0] != 'gw' else 'gw'
                 dst = 'AP_{}'.format(l[1]) if l[1] != 'gw' else 'gw'
-                topo.addLink(src, dst, cls=TerraNetLink, intf=TerraNetIntf)  # Link to gateway should be unlimited
+                topo.addLink(src, dst, cls=TerraNetLink, intf=TerraNetIntf)
         else:
             raise ValueError('No backhaul links set in network!!')
 
@@ -104,36 +104,58 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
 
 
 class TerraNet(ipmininet.ipnet.IPNet):
+    def __init__(self, fronthaul_emulator, figure_path=None, *args, **kwargs):
+        self.fh_emulator = fronthaul_emulator
+        self.figure_path = figure_path
+        self._lock = threading.Lock()
+        super(TerraNet, self).__init__(*args, **kwargs)
 
     def start(self):
         super(TerraNet, self).start()
         for client in filter(lambda h: isinstance(h, TerraNetClient), self.hosts):
             client.start()
 
+    def buildFromTopo(self, topo):
+        super(TerraNet, self).buildFromTopo(topo)
+        for name in self:
+            if isinstance(self[name], TerraNetClient) or isinstance(self[name], TerraNetRouter):
+               self[name].net = self
+
+        self.draw()
+
     def to_multigraph(self):
         g = networkx.MultiGraph()
 
         g.add_nodes_from(filter(lambda h: isinstance(h, DistributionNode), [self[name] for name in self]), color='r')
         g.add_nodes_from(filter(lambda h: isinstance(h, ClientNode), [self[name] for name in self]), color='orange')
-        g.add_nodes_from(filter(lambda h: isinstance(h, TerraNetClient), [self[name] for name in self]), color='g')
+        g.add_nodes_from(filter(lambda h: isinstance(h, TerraNetClient) and h.active, [self[name] for name in self]), color='g')
+        g.add_nodes_from(filter(lambda h: isinstance(h, TerraNetClient) and not h.active, [self[name] for name in self]), color='grey')
 
         g.add_edges_from([(l.intf1.node, l.intf2.node) for l in self.links])
         return g
 
-    def draw(self, path):
-        g = self.to_multigraph()
-        matplotlib.pyplot.switch_backend('agg')
+    def draw(self, path=None):
+        log = logging.getLogger(__name__)
+        with self._lock:
+            g = self.to_multigraph()
+            matplotlib.pyplot.switch_backend('agg')
 
-        nodelist = g.nodes
+            nodelist = g.nodes
 
-        positions = {}
-        for n in g.nodes:
-            positions[n] = n.pos
+            positions = {}
+            for n in g.nodes:
+                positions[n] = n.pos
 
-        colorlist = map(lambda n: n[1]['color'] if 'color' in n[1] else 'b', g.nodes(data=True))
+            colorlist = map(lambda n: n[1]['color'] if 'color' in n[1] else 'b', g.nodes(data=True))
 
-        networkx.draw(g, pos=positions, nodelist=nodelist, node_color=colorlist, node_size=1e3, with_labels=True)
-        matplotlib.pyplot.savefig(path)
+            networkx.draw(g, pos=positions, nodelist=nodelist, node_color=colorlist, node_size=1e3, with_labels=True)
+
+            if path is not None:
+                matplotlib.pyplot.savefig(path)
+            elif self.figure_path is not None:
+                matplotlib.pyplot.savefig(self.figure_path)
+            else:
+                log.warning('No path provided for drawing!')
 
 import threading
 ip_lock = threading.Lock()

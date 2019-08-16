@@ -2,7 +2,6 @@ import threading
 import terranet
 import select
 import json
-import time
 import logging
 import zmq
 import configparser
@@ -12,6 +11,7 @@ import os
 import subprocess
 import multiprocessing
 import sys
+
 
 class FronthaulEmulatorSwitch(threading.Thread):
     def __init__(self, hostname, sub_port, fh_emulator, default, best):
@@ -126,7 +126,7 @@ def run(args):
         network_json = json.load(f)
 
     topo = terranet.TerraNetTopo.from_network_dict(network_json, limiter)
-    net = terranet.TerraNet(topo=topo)
+    net = terranet.TerraNet(limiter, topo=topo, figure_path='/tmp/topology.png')
 
     log.info('Starting ipmininet...')
     net.start()
@@ -134,9 +134,6 @@ def run(args):
     key = functools.partial(config_metric, network=network_json)
     best = sorted(cfg_tuples, key=key, reverse=True)[0]
 
-    # Should be built before drawing
-    # terranet.draw_network(net, '/tmp/topology.png')
-    net.draw('/tmp/topology.png')
     topo_server = subprocess.Popen(['python2', '-m', 'SimpleHTTPServer', '{}'.format(args.topo_port)],
                                    cwd='/tmp/',
                                    stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'),

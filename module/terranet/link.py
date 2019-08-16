@@ -8,6 +8,9 @@ class TerraNetIntf(ipmininet.link.IPIntf):
 
     def __init__(self, *args, **kwargs):
         self.bw_limited = False
+        self.rate = None
+        self.burst = None
+        self.latency = None
         super(TerraNetIntf, self).__init__(*args, **kwargs)
 
     def set_tbf(self, rate, burst=None, latency=None):
@@ -45,6 +48,9 @@ class TerraNetIntf(ipmininet.link.IPIntf):
 
         # TODO: Check if tc was successful!
         self.bw_limited = True
+        self.rate = rate
+        self.burst = burst
+        self.latency = latency
 
     def set_delay(self):
         pass

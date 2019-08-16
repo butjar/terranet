@@ -26,7 +26,7 @@ class FronthaulEmulator:
         self.lock = threading.Lock()
         self.registered_dns = []
         self.pub_port = pub_port
-
+        self._lock = threading.Lock()
         self.ctx = zmq.Context()
         self.pub = self.ctx.socket(zmq.PUB)
         self.pub.bind('tcp://127.0.0.1:{}'.format(self.pub_port))
@@ -37,48 +37,52 @@ class FronthaulEmulator:
 
     def switch_config(self, cfg_tuple):
         log = logging.getLogger(__name__)
-        for dn in self.registered_dns:
-            result_path = cfg_tuple[1]
-            parser = configparser.ConfigParser()
+        with self._lock:
+            for dn in self.registered_dns:
+                result_path = cfg_tuple[1]
+                parser = configparser.ConfigParser()
 
-            with open(result_path, 'r') as f:
-                parser.read_file(f)
+                with open(result_path, 'r') as f:
+                    parser.read_file(f)
 
-            for cn in dn.client_nodes():
-                section = 'Node_{}'.format(cn.name)
+                for cn in dn.client_nodes():
+                    section = 'Node_{}'.format(cn.name)
 
-                try:
-                    rate = max(parser.getint(section, 'throughput'), 8)
-                except configparser.Error:
-                    log.exception('Could not find throughput for Client Node {}'.format(cn.name))
-                    continue
-
-                fh_intf = dn.get_tn_intf(cn.name)
-
-                if fh_intf is None:
-                    log.error('No interface found for ClientNode %s' % cn.name)
-                    continue
-
-                fh_intf.set_tbf(rate)
-
-                clients = list(cn.clients())
-                for c in clients:
-                    c_intf = cn.get_tn_intf(c.name)
-
-                    if c_intf is None:
-                        log.error('No interface found for client {}'.format(c.name))
+                    try:
+                        rate = max(parser.getint(section, 'throughput'), 8)
+                    except configparser.Error:
+                        log.exception('Could not find throughput for Client Node {}'.format(cn.name))
                         continue
 
-                    c_intf.set_tbf(rate // len(clients))
+                    fh_intf = dn.get_tn_intf(cn.name)
 
-        text = ''
-        for ap in cfg_tuple[0].get_access_points():
-            text += '<p>{name}: {min} -- {max} ({bw} MHz)</p>\n'.format(name=ap.short(),
-                                                                        min=ap.min_channel_allowed,
-                                                                        max=ap.max_channel_allowed,
-                                                                        bw=20 * (int(ap.max_channel_allowed) - int(
-                                                                            ap.min_channel_allowed) + 1))
-            self.pub.send_multipart(['config', text])
+                    if fh_intf is None:
+                        log.error('No interface found for ClientNode %s' % cn.name)
+                        continue
+
+                    fh_intf.set_tbf(rate)
+
+                    clients = list(filter(lambda c: c.active, cn.clients()))
+                    for c in clients:
+                        c_intf = cn.get_tn_intf(c.name)
+
+                        if c_intf is None:
+                            log.error('No interface found for client {}'.format(c.name))
+                            continue
+
+                        c_intf.set_tbf(rate // max(1, len(clients)))
+
+            text = ''
+            for ap in cfg_tuple[0].get_access_points():
+                text += '<p>{name}: {min} -- {max} ({bw} MHz)</p>\n'.format(name=ap.short(),
+                                                                            min=ap.min_channel_allowed,
+                                                                            max=ap.max_channel_allowed,
+                                                                            bw=20 * (int(ap.max_channel_allowed) - int(
+                                                                                ap.min_channel_allowed) + 1))
+                self.pub.send_multipart(['config', text])
+
+    def clients_changed(self):
+        self.switch_config(self.current_tuple)
 
     def channel_configuration_change(self, dn_name, changes):
         log = logging.getLogger(__name__)
@@ -117,9 +121,10 @@ class FronthaulEmulator:
 
 
 class TerraNetRouter(ipmininet.router.Router):
-    def __init__(self, name, pos=None, **params):
+    def __init__(self, name, pos=None, net=None, **params):
         self.pos = pos
         self.processes = []
+        self.net = net
         super(TerraNetRouter, self).__init__(name, **params)
 
     def popen(self, *args, **kwargs):
@@ -222,9 +227,11 @@ class ClientNode(TerraNetRouter):
 
 
 class TerraNetClient(ipmininet.ipnet.Host):
-    def __init__(self, name, pos=None, **params):
+    def __init__(self, name, pos=None, net=None, **params):
         self.processes = []
         self.pos = pos
+        self.net = net
+        self._active = False
         super(TerraNetClient, self).__init__(name, **params)
 
     def terminate(self):
@@ -241,6 +248,20 @@ class TerraNetClient(ipmininet.ipnet.Host):
             p = super(TerraNetClient, self).popen(*args, **kwargs)
         self.processes.append(p)
         return p
+
+    @property
+    def active(self):
+        return self._active
+
+    @active.setter
+    def active(self, value):
+        prev = self._active
+        self._active = value
+
+        if value != prev:
+            if self.net:
+                self.net.fh_emulator.clients_changed()
+                self.net.draw()
 
     def start(self):
         self.popen('iperf -s -V')
@@ -271,7 +292,12 @@ class TerraNetGateway(TerraNetRouter):
         if dst not in self.iperf_threads:
             t = threading.Thread(target=self._run_iperf, args=(dst,))
             self.iperf_threads[dst] = [t, True]
+
+            if isinstance(dst, TerraNetClient):
+                dst.active = True
+
             t.start()
+
         else:
             log.error('Iperf from {} to {} is already running!'.format(self.name, dst.name))
 
@@ -284,6 +310,9 @@ class TerraNetGateway(TerraNetRouter):
         log.info('Stopping iperf from {} to {}...'.format(self.name, dst.name))
         self.iperf_threads[dst][1] = False
         self.iperf_threads[dst][0].join()
+
+        if isinstance(dst, TerraNetClient):
+            dst.active = False
 
         log.info('Iperf from {} to {} stopped.'.format(self.name, dst.name))
         del self.iperf_threads[dst]
@@ -310,6 +339,7 @@ class TerraNetGateway(TerraNetRouter):
         while not self.route_exists_v6(ip6) and self._iperf_alive(dst):
             log.debug('Waiting for route from {} to {}'.format(self.name, dst.name))
             time.sleep(3)
+
 
         while self._iperf_alive(dst):
             duration = 3000  # Make it very long to have stable flows.
@@ -356,7 +386,9 @@ class TerraNetGateway(TerraNetRouter):
                     time.sleep(3)
                     break
 
+
             log.info('Iperf process for client {} ({}) exited.'.format(dst.name, ip6))
+
 
         if p and p.poll() is None:
             log.info('Stopping iperf process with pid {}'.format(p.pid))
