@@ -14,7 +14,8 @@ import ipmininet.router
 import ipmininet.ipnet
 
 from .link import TerraNetIntf
-from .channel_api import API_handler
+from .channel_api import Channel_API_handler
+from .gw_api import Gateway_API_handler
 
 g_subprocess_lock = threading.Lock()
 
@@ -205,7 +206,7 @@ class DistributionNode(TerraNetRouter):
         super(DistributionNode, self).__init__(name, *args, **params)
 
         f = functools.partial(self.fh_emulator.channel_configuration_change, self.name)
-        self.api_handler = API_handler(self.name, self.api_port, f, self.pid)
+        self.api_handler = Channel_API_handler(self.name, self.api_port, f, self.pid)
 
     def start(self):
         super(DistributionNode, self).start()
@@ -278,6 +279,8 @@ class TerraNetGateway(TerraNetRouter):
         self._reports = {}
         self.iperf_report_cb = iperf_report_cb
         super(TerraNetGateway, self).__init__(name, **params)
+
+        self.api_handler = Gateway_API_handler(self.name, self, 6666, self.pid)
         # TODO: Make this work, without the disappearing intf afterwards
         # ipmininet.link.PhysicalInterface(dev, node=self) # Adds external interface to node
 
@@ -344,6 +347,9 @@ class TerraNetGateway(TerraNetRouter):
             del self._reports[dst]
 
     def terminate(self):
+        self.api_handler.running = False
+        self.api_handler.join()
+
         self.stop_all_iperfs()
         super(TerraNetGateway, self).terminate()
 
@@ -425,3 +431,4 @@ class TerraNetGateway(TerraNetRouter):
         log.debug('Started Terranet gateway "{}"'.format(self.name))
         for n in filter(lambda h: isinstance(h, TerraNetClient), self.connected_nodes()):
             self.connected_clients.add(n)
+        self.api_handler.start()

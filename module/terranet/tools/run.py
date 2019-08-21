@@ -12,6 +12,8 @@ import multiprocessing
 import sys
 
 
+# TODO: Unify switches into one zmq interface with command handlers for different tasks
+# That way we could use one port to connect to.
 class FronthaulEmulatorSwitch(threading.Thread):
     def __init__(self, port, fh_emulator, default, best):
         super(FronthaulEmulatorSwitch, self).__init__()
@@ -255,9 +257,5 @@ def run(args):
         net.stop()
         log.info('Mininet stopped.')
         s.close()
-
-
-
-
 
 
