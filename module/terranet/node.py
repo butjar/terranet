@@ -70,6 +70,9 @@ class FronthaulEmulator:
                             log.error('No interface found for client {}'.format(c.name))
                             continue
 
+                        if len(clients) < 1:
+                            log.warning('No active clients for ClientNode {}!!! This breaks our model assumptions!'.format(cn.name))
+
                         c_intf.set_tbf(rate // max(1, len(clients)))
 
             text = ''
@@ -79,7 +82,8 @@ class FronthaulEmulator:
                                                                             max=ap.max_channel_allowed,
                                                                             bw=20 * (int(ap.max_channel_allowed) - int(
                                                                                 ap.min_channel_allowed) + 1))
-                self.pub.send_multipart(['config', text])
+
+            self.pub.send_multipart(['config', text])
 
     def clients_changed(self):
         self.switch_config(self.current_tuple)
@@ -271,10 +275,30 @@ class TerraNetGateway(TerraNetRouter):
     def __init__(self, name, dev, iperf_report_cb=None, **params):
         self.connected_clients = set()
         self.iperf_threads = {}
+        self._reports = {}
         self.iperf_report_cb = iperf_report_cb
         super(TerraNetGateway, self).__init__(name, **params)
         # TODO: Make this work, without the disappearing intf afterwards
         # ipmininet.link.PhysicalInterface(dev, node=self) # Adds external interface to node
+
+    @property
+    def reports(self):
+        r = {}
+        for n, t in self._reports.items():
+            r[n.name] = t
+        return r
+
+    @property
+    def throughput(self):
+        return sum(self._reports[dst] for dst in self._reports.keys())
+
+    @property
+    def jains_fairness(self):
+        squares = sum(self._reports[dst] ** 2 for dst in self._reports.keys())
+        if squares == 0:
+            return 0.0
+        ret = float(self.throughput ** 2) / float((len(self._reports) * squares))
+        return ret
 
     def start_all_iperfs(self):
         for c in self.connected_clients:
@@ -316,6 +340,8 @@ class TerraNetGateway(TerraNetRouter):
 
         log.info('Iperf from {} to {} stopped.'.format(self.name, dst.name))
         del self.iperf_threads[dst]
+        if dst in self._reports:
+            del self._reports[dst]
 
     def terminate(self):
         self.stop_all_iperfs()
@@ -370,8 +396,9 @@ class TerraNetGateway(TerraNetRouter):
                         break
 
                     log.debug("Iperf stdout ({}): {}".format(dst.name, o))
-
-                    payload = "{}".format(int(o.split(',')[8]) / 1e6)
+                    throughput = int(o.split(',')[8])
+                    self._reports[dst] = throughput
+                    payload = "{}".format(throughput / 1e6)
                     time_span = float(o.split(',')[6].split('-')[1]) - float(o.split(',')[6].split('-')[0])
 
                     if time_span > duration:
@@ -386,9 +413,7 @@ class TerraNetGateway(TerraNetRouter):
                     time.sleep(3)
                     break
 
-
             log.info('Iperf process for client {} ({}) exited.'.format(dst.name, ip6))
-
 
         if p and p.poll() is None:
             log.info('Stopping iperf process with pid {}'.format(p.pid))

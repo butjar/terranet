@@ -1,6 +1,5 @@
 import threading
 import terranet
-import select
 import json
 import logging
 import zmq
@@ -14,10 +13,9 @@ import sys
 
 
 class FronthaulEmulatorSwitch(threading.Thread):
-    def __init__(self, hostname, sub_port, fh_emulator, default, best):
+    def __init__(self, port, fh_emulator, default, best):
         super(FronthaulEmulatorSwitch, self).__init__()
-        self.sub_port = sub_port
-        self.hostname = hostname
+        self.port =  port
         self.running = False
         self.fh_emulator = fh_emulator
         self.default = default
@@ -25,21 +23,82 @@ class FronthaulEmulatorSwitch(threading.Thread):
 
     def run(self):
         self.running = True
+        log = logging.getLogger(__name__)
         ctx = zmq.Context()
-        sub = ctx.socket(zmq.SUB)
-        sub.setsockopt(zmq.SUBSCRIBE, 'controller')
-        sub.connect('tcp://{}:{}'.format(self.hostname, self.sub_port))
+        rep = ctx.socket(zmq.REP)
+        rep.bind('tcp://*:{}'.format(self.port))
 
         while self.running:
-            rlist, _, _ = zmq.select([sub], [], [], 3.0)
-            if sub in rlist:
-                topic, content = sub.recv_multipart()
+            rlist, _, _ = zmq.select([rep], [], [], 3.0)
+            if rep in rlist:
+                try:
+                    topic, content = rep.recv_multipart()
+                except ValueError:
+                    log.exception('Received illegal message!')
+                    rep.send_multipart(['Error', 'Error'])
+                    continue
+                except zmq.ZMQError as e:
+                    log.exception('ZMQ Error: {}'.format(e))
+                    continue
+
                 with self.fh_emulator.lock:
                     index = self.best if content == 'true' else self.default
                     self.fh_emulator.current_tuple = self.fh_emulator.cfg_tuples[index]
                     self.fh_emulator.switch_config(self.fh_emulator.current_tuple)
 
-        sub.close()
+                rep.send_multipart(['Ok', 'Ok'])
+
+        rep.close()
+
+
+class ClientSwitch(threading.Thread):
+    def __init__(self, port, gw, net):
+        super(ClientSwitch, self).__init__()
+        self.port = port
+        self.gw = gw
+        self.net = net
+        self.running = False
+
+    def run(self):
+        self.running = True
+        log = logging.getLogger(__name__)
+
+        ctx = zmq.Context()
+        rep = ctx.socket(zmq.REP)
+        rep.bind('tcp://*:{}'.format(self.port))
+
+        log.info('Started client switch on port {}'.format(self.port))
+        while self.running:
+
+            rlist, _, _ = zmq.select([rep], [], [], 3.0)
+
+            if rep not in rlist:
+                continue
+
+            try:
+                name, state = rep.recv_multipart()
+            except ValueError:
+                log.exception('Exception while decoding message!')
+                rep.send_multipart(['Error', 'Error'])
+                continue
+            except zmq.ZMQError:
+                log.exception('ZMQ Error!')
+
+            log.info('Received Request for Client {} --> {}'.format(name, state))
+
+            if name in self.net:
+                if state == 'on':
+                    self.gw.start_iperf(self.net[name])
+                    rep.send_multipart(['Ok', 'Ok'])
+                    continue
+                elif state == 'off':
+                    self.gw.stop_iperf(self.net[name])
+                    rep.send_multipart(['Ok', 'Ok'])
+                    continue
+                else:
+                    log.warning('Received unknown command: {}'.format(state))
+
+            rep.send_multipart(['Error', 'Error'])
 
 
 def config_metric(cfg_tuple, network):
@@ -150,16 +209,28 @@ def run(args):
         with zmq_lock:
             try:
                 # NOBLOCK necessary to prevent deadlock
-                topic = 'flows/{}'.format(dst.name)
-                s.send_multipart([topic, payload], flags=zmq.NOBLOCK)
+                topic = 'flows'
+                reports = json.dumps(src.reports)
+                s.send_multipart([topic, reports], flags=zmq.NOBLOCK)
+
+                topic = 'throughput'
+                t = "{}".format(src.throughput)
+                s.send_multipart([topic, t], flags=zmq.NOBLOCK)
+
+                topic = 'fairness'
+                fn = "{}".format(src.jains_fairness)
+                s.send_multipart([topic, fn], flags=zmq.NOBLOCK)
             except zmq.ZMQError as e:
                 log.error('Dropping message due to full queue')
 
     gw.iperf_report_cb = report_iperf
     gw.start_all_iperfs()
 
-    flipswitch = FronthaulEmulatorSwitch('localhost', 4567, limiter, cfg_tuples.index(default), cfg_tuples.index(best))
+    flipswitch = FronthaulEmulatorSwitch(4567, limiter, cfg_tuples.index(default), cfg_tuples.index(best))
     flipswitch.start()
+
+    cswitch = ClientSwitch(8888, gw, net)
+    cswitch.start()
 
     try:
         terranet.TerraNetCLI(net)
@@ -175,6 +246,10 @@ def run(args):
         log.info('Stopping flipswitch...')
         flipswitch.running = False
         flipswitch.join()
+
+        log.info('Stopping cswitch...')
+        cswitch.running = False
+        cswitch.join()
 
         log.info('Stopping mininet...')
         net.stop()
