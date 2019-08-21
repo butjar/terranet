@@ -5,6 +5,7 @@ import sys
 import functools
 import time
 import select
+import json
 
 import copy
 import configparser
@@ -231,13 +232,11 @@ class ClientNode(TerraNetRouter):
         return filter(lambda n: isinstance(n, TerraNetClient), self.neighbours())
 
 
-class TerraNetClient(ipmininet.ipnet.Host):
-    def __init__(self, name, pos=None, net=None, **params):
+class TerraNetHost(ipmininet.ipnet.Host):
+    def __init__(self, name, pos=None, **params):
         self.processes = []
         self.pos = pos
-        self.net = net
-        self._active = False
-        super(TerraNetClient, self).__init__(name, **params)
+        super(TerraNetHost, self).__init__(name, **params)
 
     def terminate(self):
         for p in self.processes:
@@ -246,13 +245,20 @@ class TerraNetClient(ipmininet.ipnet.Host):
             except OSError:
                 pass
 
-        super(TerraNetClient, self).terminate()
+        super(TerraNetHost, self).terminate()
 
     def popen(self, *args, **kwargs):
         with g_subprocess_lock:
-            p = super(TerraNetClient, self).popen(*args, **kwargs)
+            p = super(TerraNetHost, self).popen(*args, **kwargs)
         self.processes.append(p)
         return p
+
+
+class TerraNetClient(TerraNetHost):
+    def __init__(self, name, net=None, **params):
+        self.net = net
+        self._active = False
+        super(TerraNetClient, self).__init__(name, **params)
 
     @property
     def active(self):
@@ -372,7 +378,6 @@ class TerraNetGateway(TerraNetRouter):
             log.debug('Waiting for route from {} to {}'.format(self.name, dst.name))
             time.sleep(3)
 
-
         while self._iperf_alive(dst):
             duration = 3000  # Make it very long to have stable flows.
             cmd = 'iperf -y c -V -t {} -i 5 -c {}'.format(duration, ip6)
@@ -432,3 +437,49 @@ class TerraNetGateway(TerraNetRouter):
         for n in filter(lambda h: isinstance(h, TerraNetClient), self.connected_nodes()):
             self.connected_clients.add(n)
         self.api_handler.start()
+
+
+class TerraNetControlNode(TerraNetHost):
+    def __init__(self, name, gw_ip6, gw_api_port=6666, *args, **kwargs):
+        self.gw_addr = gw_ip6
+        self.gw_port = gw_api_port
+        super(TerraNetControlNode, self).__init__(name, *args, **kwargs)
+
+    def _query_gw(self, query):
+        log = logging.getLogger(__name__)
+        p = self.popen('curl -g -6 http://[{}]:{}/info/{}'.format(self.gw_addr, self.gw_port, query))
+        out, err = p.communicate()
+
+        if p.returncode != 0:
+            log.error('Error executing query to gateway! Stderr: {} | Stdout: {}'.format(err,out))
+            return None
+
+        try:
+            resp = json.loads(out)
+        except ValueError():
+            log.exception('Received unexpected output from curl! --> "{}"'.format(out))
+            return None
+
+        if 'status' not in resp:
+            log.error('Received unexpected output from curl! --> "{}"'.format(out))
+            return None
+
+        if resp['status'] == 'Error':
+            log.warning('Query could not be executed by gateway!')
+            return None
+
+        if 'query' not in resp:
+            log.error('Received unexpected output from curl! --> "{}"'.format(out))
+            return None
+
+        return resp['query']
+
+    def get_fairness(self):
+        return self._query_gw('fairness')
+
+    def get_throughput(self):
+        return self._query_gw('throughput')
+
+    def get_flows(self):
+        return self._query_gw('reports')
+

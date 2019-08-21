@@ -6,12 +6,13 @@ import ipmininet.iptopo
 import ipmininet.router.config as ipcfg
 import ipmininet.utils
 
-from .node import TerraNetClient, TerraNetGateway, DistributionNode, ClientNode, FronthaulEmulator, TerraNetRouter, g_subprocess_lock
+from .node import TerraNetClient, TerraNetGateway, DistributionNode, ClientNode, FronthaulEmulator, TerraNetRouter, g_subprocess_lock, TerraNetControlNode
 from .link import TerraNetLink, TerraNetIntf
 from ipmininet.cli import IPCLI
 
 import networkx
 import matplotlib.pyplot
+
 
 
 class OpenrConfig(ipcfg.RouterConfig):
@@ -91,6 +92,11 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
             topo.addRouter('gw', cls=TerraNetGateway, dev='enp0s3', config=OpenrConfig,
                            pos=(float(gw['x']), float(gw['y'])),
                            privateDirs=['/tmp', '/var/log'])  # Gateway -- Not a DN
+
+            topo.addHost('c', cls=TerraNetControlNode, gw_ip6='', gw_api_port=6666,
+                         pos=(float(gw['x']), float(gw['y'])-10))
+
+            topo.addLink('gw', 'c', cls=TerraNetLink, intf=TerraNetIntf)
 
         if 'backhaul_links' in network:
             for l in network['backhaul_links']:

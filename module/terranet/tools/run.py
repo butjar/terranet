@@ -200,6 +200,7 @@ def run(args):
                                    stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'),
                                    close_fds=True)
 
+
     gw = net['gw']
 
     zmq_lock = threading.Lock()
