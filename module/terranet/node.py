@@ -73,7 +73,9 @@ class FronthaulEmulator:
                             continue
 
                         if len(clients) < 1:
-                            log.warning('No active clients for ClientNode {}!!! This breaks our model assumptions!'.format(cn.name))
+                            log.warning(
+                                'No active clients for ClientNode {}!!! This breaks our model assumptions!'.format(
+                                    cn.name))
 
                         c_intf.set_tbf(rate // max(1, len(clients)))
 
@@ -451,7 +453,7 @@ class TerraNetControlNode(TerraNetHost):
         out, err = p.communicate()
 
         if p.returncode != 0:
-            log.error('Error executing query to gateway! Stderr: {} | Stdout: {}'.format(err,out))
+            log.error('Error executing query to gateway! Stderr: {} | Stdout: {}'.format(err, out))
             return None
 
         try:
@@ -482,4 +484,3 @@ class TerraNetControlNode(TerraNetHost):
 
     def get_flows(self):
         return self._query_gw('reports')
-

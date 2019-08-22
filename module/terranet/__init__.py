@@ -1,18 +1,19 @@
 # coding=utf-8
 import logging
+import threading
 
 import ipmininet.ipnet
 import ipmininet.iptopo
 import ipmininet.router.config as ipcfg
 import ipmininet.utils
 
-from .node import TerraNetClient, TerraNetGateway, DistributionNode, ClientNode, FronthaulEmulator, TerraNetRouter, g_subprocess_lock, TerraNetControlNode
+from .node import TerraNetClient, TerraNetGateway, DistributionNode, ClientNode, FronthaulEmulator, TerraNetRouter, \
+    g_subprocess_lock, TerraNetControlNode
 from .link import TerraNetLink, TerraNetIntf
 from ipmininet.cli import IPCLI
 
 import networkx
 import matplotlib.pyplot
-
 
 
 class OpenrConfig(ipcfg.RouterConfig):
@@ -53,14 +54,11 @@ class TerraNetCLI(IPCLI):
             return
 
         cmd = 'curl -XPUT -H "Content-type: application/json" -d '
-        cmd += '\'{{ "config": {{"min_channel_allowed": "{}", "max_channel_allowed": "{}"}}}}\' '.format(chan_min, chan_max)
+        cmd += '\'{{ "config": {{"min_channel_allowed": "{}", "max_channel_allowed": "{}"}}}}\' '.format(chan_min,
+                                                                                                         chan_max)
         cmd += 'http://localhost:{}/cfg/'.format(self.mn[name].api_port)
         self.mn[name].sendCmd(cmd)
         self.waitForNode(self.mn[name])
-
-
-
-
 
 
 class TerraNetTopo(ipmininet.iptopo.IPTopo):
@@ -94,7 +92,7 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
                            privateDirs=['/tmp', '/var/log'])  # Gateway -- Not a DN
 
             topo.addHost('c', cls=TerraNetControlNode, gw_ip6='', gw_api_port=6666,
-                         pos=(float(gw['x']), float(gw['y'])-10))
+                         pos=(float(gw['x']), float(gw['y']) - 10))
 
             topo.addLink('gw', 'c', cls=TerraNetLink, intf=TerraNetIntf)
 
@@ -125,7 +123,7 @@ class TerraNet(ipmininet.ipnet.IPNet):
         super(TerraNet, self).buildFromTopo(topo)
         for name in self:
             if isinstance(self[name], TerraNetClient) or isinstance(self[name], TerraNetRouter):
-               self[name].net = self
+                self[name].net = self
 
         self.draw()
 
@@ -134,8 +132,11 @@ class TerraNet(ipmininet.ipnet.IPNet):
 
         g.add_nodes_from(filter(lambda h: isinstance(h, DistributionNode), [self[name] for name in self]), color='r')
         g.add_nodes_from(filter(lambda h: isinstance(h, ClientNode), [self[name] for name in self]), color='orange')
-        g.add_nodes_from(filter(lambda h: isinstance(h, TerraNetClient) and h.active, [self[name] for name in self]), color='g')
-        g.add_nodes_from(filter(lambda h: isinstance(h, TerraNetClient) and not h.active, [self[name] for name in self]), color='grey')
+        g.add_nodes_from(filter(lambda h: isinstance(h, TerraNetClient) and h.active, [self[name] for name in self]),
+                         color='g')
+        g.add_nodes_from(
+            filter(lambda h: isinstance(h, TerraNetClient) and not h.active, [self[name] for name in self]),
+            color='grey')
 
         g.add_edges_from([(l.intf1.node, l.intf2.node) for l in self.links])
         return g
@@ -162,16 +163,3 @@ class TerraNet(ipmininet.ipnet.IPNet):
                 matplotlib.pyplot.savefig(self.figure_path)
             else:
                 log.warning('No path provided for drawing!')
-
-import threading
-ip_lock = threading.Lock()
-def address_pair(node):
-    with ip_lock:
-        '''
-        Some explanation for this nonsense:
-        address_pair() calls subprocess under the hood, which is not thread-safe under 2.7.
-        We **should** secure it with the g_subprocess_lock but due to some unknown dependency
-        this causes a deadlock. So we will just use a local lock and hope for the best for now.
-        '''
-        return ipmininet.utils.address_pair(node)
-
