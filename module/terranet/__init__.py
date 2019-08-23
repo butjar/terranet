@@ -10,6 +10,7 @@ import ipmininet.utils
 from .node import TerraNetClient, TerraNetGateway, DistributionNode, ClientNode, FronthaulEmulator, TerraNetRouter, \
     g_subprocess_lock, TerraNetControlNode
 from .link import TerraNetLink, TerraNetIntf
+from .controller import TerraNetController
 from ipmininet.cli import IPCLI
 
 import networkx
@@ -60,6 +61,24 @@ class TerraNetCLI(IPCLI):
         self.mn[name].sendCmd(cmd)
         self.waitForNode(self.mn[name])
 
+    def do_ctrl_attach(self, line):
+        log = logging.getLogger(__name__)
+        args = line.split()
+
+        if len(args) != 1:
+            log.error('Invalid number of arguments!')
+            return
+
+        path = args[0]
+        log.info('Loading controller from {}'.format(path))
+        ctrl_node = self.mn['c']
+        gw = self.mn['gw']
+        ctrl_node.attach_controller(gw.intf().ip6, path)
+
+    def do_ctrl_detach(self, line):
+        ctrl_node = self.mn['c']
+        ctrl_node.detach_controller()
+
 
 class TerraNetTopo(ipmininet.iptopo.IPTopo):
     @classmethod
@@ -91,9 +110,7 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
                            pos=(float(gw['x']), float(gw['y'])),
                            privateDirs=['/tmp', '/var/log'])  # Gateway -- Not a DN
 
-            topo.addHost('c', cls=TerraNetControlNode, gw_ip6='', gw_api_port=6666,
-                         pos=(float(gw['x']), float(gw['y']) - 10))
-
+            topo.addHost('c', cls=TerraNetControlNode, pos=(float(gw['x']), float(gw['y']) - 10))
             topo.addLink('gw', 'c', cls=TerraNetLink, intf=TerraNetIntf)
 
         if 'backhaul_links' in network:

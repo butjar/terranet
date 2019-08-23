@@ -7,6 +7,9 @@ import time
 import select
 import json
 
+import imp
+import inspect
+
 import copy
 import configparser
 import zmq
@@ -17,6 +20,7 @@ import ipmininet.ipnet
 from .link import TerraNetIntf
 from .channel_api import Channel_API_handler
 from .gw_api import Gateway_API_handler
+from .controller import TerraNetController
 
 g_subprocess_lock = threading.Lock()
 
@@ -442,45 +446,50 @@ class TerraNetGateway(TerraNetRouter):
 
 
 class TerraNetControlNode(TerraNetHost):
-    def __init__(self, name, gw_ip6, gw_api_port=6666, *args, **kwargs):
-        self.gw_addr = gw_ip6
-        self.gw_port = gw_api_port
+    def __init__(self, name, *args, **kwargs):
+        self.running_controller = None
         super(TerraNetControlNode, self).__init__(name, *args, **kwargs)
 
-    def _query_gw(self, query):
+    # https://www.oreilly.com/library/view/python-cookbook/0596001673/ch15s03.html
+    @staticmethod
+    def _load_module(name, path):
+        """Use at your own risk. You are executing arbitrary code with sudo rights!"""
         log = logging.getLogger(__name__)
-        p = self.popen('curl -g -6 http://[{}]:{}/info/{}'.format(self.gw_addr, self.gw_port, query))
-        out, err = p.communicate()
 
-        if p.returncode != 0:
-            log.error('Error executing query to gateway! Stderr: {} | Stdout: {}'.format(err, out))
-            return None
+        log.info('Loading module from {}.'.format(path))
+        with open(path, 'r') as f:
+            code = f.read()
 
-        try:
-            resp = json.loads(out)
-        except ValueError():
-            log.exception('Received unexpected output from curl! --> "{}"'.format(out))
-            return None
+        module = imp.new_module(name)
+        exec code in module.__dict__
 
-        if 'status' not in resp:
-            log.error('Received unexpected output from curl! --> "{}"'.format(out))
-            return None
+        sys.modules[name] = module
 
-        if resp['status'] == 'Error':
-            log.warning('Query could not be executed by gateway!')
-            return None
+        return module
 
-        if 'query' not in resp:
-            log.error('Received unexpected output from curl! --> "{}"'.format(out))
-            return None
+    def attach_controller(self, gw_ip6, path, gw_api_port=6666, *args, **kwargs):
+        log = logging.getLogger(__name__)
+        ctrl_module = self._load_module('customctrl', path)
 
-        return resp['query']
+        controller_cls = None
+        for name, c in inspect.getmembers(ctrl_module, inspect.isclass):
+            if issubclass(c, TerraNetController):
+                log.info('Found controller "{}".'.format(name))
+                controller_cls = c
+                break
+        if controller_cls is None:
+            raise ValueError('No controller found in module!')
 
-    def get_fairness(self):
-        return self._query_gw('fairness')
+        self.running_controller = controller_cls(self.pid, gw_ip6, gw_api_port, *args, **kwargs)
+        self.running_controller.start()
 
-    def get_throughput(self):
-        return self._query_gw('throughput')
+    def terminate(self):
+        self.detach_controller()
+        super(TerraNetControlNode, self).terminate()
 
-    def get_flows(self):
-        return self._query_gw('reports')
+    def detach_controller(self):
+        if self.running_controller is not None:
+            self.running_controller.stop()
+            self.running_controller = None
+            del sys.modules['customctrl']
+
