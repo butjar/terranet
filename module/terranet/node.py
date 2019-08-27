@@ -304,6 +304,13 @@ class TerraNetGateway(TerraNetRouter):
         return r
 
     @property
+    def reports_ip6(self):
+        r = {}
+        for n, t in self._reports.items():
+            r[n.intf().ip6] = t
+        return r
+
+    @property
     def throughput(self):
         return sum(self._reports[dst] for dst in self._reports.keys())
 
@@ -325,6 +332,9 @@ class TerraNetGateway(TerraNetRouter):
 
         for dst in self.iperf_threads.keys():
             self.iperf_threads[dst][0].join()
+
+        self.iperf_threads.clear()
+        self._reports.clear()
 
     def start_iperf(self, dst):
         log = logging.getLogger(__name__)

@@ -1,6 +1,7 @@
 # coding=utf-8
 import logging
 import threading
+import ipaddress
 
 import ipmininet.ipnet
 import ipmininet.iptopo
@@ -84,25 +85,45 @@ class TerraNetTopo(ipmininet.iptopo.IPTopo):
     @classmethod
     def from_network_dict(cls, network, fh_emulator):
         topo = cls()
+        supernet = ipaddress.IPv6Network(u'faac:0000:0001::0/48')
+        ap_prefixes = supernet.subnets(prefixlen_diff=8)  #NOTE: This limits us to 256 Access Points
         for n in network['networks']:
+            ap_prefix = next(ap_prefixes)
+            ap_subnets = ap_prefix.subnets(prefixlen_diff=16)
+
             ap_name = 'AP_{}'.format(n['wlan_code'])
             topo.addRouter(ap_name, cls=DistributionNode, fronthaul_emulator=fh_emulator, wlan=n['wlan_code'],
                            pos=(float(n['ap']['x']), float(n['ap']['y'])),
                            config=OpenrConfig, privateDirs=['/tmp', '/var/log'])
 
             for i, sta in enumerate(n['stas']):
+                ap_net = next(ap_subnets)
+                ap_net_hosts = ap_net.hosts()
+                ap_ip = ipaddress.IPv6Interface((next(ap_net_hosts), ap_net.prefixlen))
+
+                sta_ip0 = ipaddress.IPv6Interface((next(ap_net_hosts), ap_net.prefixlen))
+
                 sta_name = 'STA_{}{}'.format(n['wlan_code'], i + 1)
                 topo.addRouter(sta_name, cls=ClientNode, pos=(float(sta['x']), float(sta['y'])), config=OpenrConfig,
                                privateDirs=['/tmp', '/var/log'])
 
-                topo.addLink(ap_name, sta_name, cls=TerraNetLink, intf=TerraNetIntf)
+                fh_link_info = topo.addLink(ap_name, sta_name, cls=TerraNetLink, intf=TerraNetIntf)
+                fh_link_info.src_intf.addParams(ip=(ap_ip.with_prefixlen,))
+                fh_link_info.dst_intf.addParams(ip=(sta_ip0.with_prefixlen,))
 
                 if 'clients' in sta:
-                    for i in range(1, sta['clients'] + 1):
-                        client_name = sta_name + '_C%d' % i
+                    for j in range(1, sta['clients'] + 1):
+                        sta_prefix = next(ap_subnets)
+                        sta_prefix_hosts = sta_prefix.hosts()
+                        sta_ip1 = ipaddress.IPv6Interface((next(sta_prefix_hosts), sta_prefix.prefixlen))
+
+                        client_name = sta_name + '_C%d' % j
+                        client_ip = ipaddress.IPv6Interface((next(sta_prefix_hosts), sta_prefix.prefixlen))
                         topo.addHost(client_name, cls=TerraNetClient,
-                                     pos=(float(sta['x']) + ((i - 1) * 8), float(sta['y']) + 5 + ((i - 1) * 3)))
-                        topo.addLink(sta_name, client_name, cls=TerraNetLink, intf=TerraNetIntf)
+                                     pos=(float(sta['x']) + ((j - 1) * 8), float(sta['y']) + 5 + ((j - 1) * 3)))
+                        cn_link_info = topo.addLink(sta_name, client_name, cls=TerraNetLink, intf=TerraNetIntf)
+                        cn_link_info.src_intf.addParams(ip=(sta_ip1.with_prefixlen,))
+                        cn_link_info.dst_intf.addParams(ip=(client_ip.with_prefixlen, ))
 
         if 'gateway' in network:  # aka. MysteryBox™
             gw = network['gateway']

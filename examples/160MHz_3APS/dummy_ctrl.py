@@ -11,5 +11,10 @@ class DummyCtrl(terranet.TerraNetController):
             log.info('My Gateway Port: {}'.format(self.gw_port))
             log.info('Current fairness: {}'.format(self.get_fairness()))
             log.info('Current throughput: {}'.format(self.get_throughput()))
+
+            log.info('Current Flows')
+            flows = self.get_flows()
+            for ip in flows:
+                log.info('IPv6: {} -- {} Mbit/s -- DN: {}'.format(ip, flows[ip]/1e6, self.get_dn_ip6(ip)))
             time.sleep(5)
 

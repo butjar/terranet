@@ -38,7 +38,7 @@ class Gateway_API_handler(threading.Thread):
 
                 resp = {'status': 'Ok'}
                 if req == 'reports':
-                    reports = self.gw.reports
+                    reports = self.gw.reports_ip6
                     resp['query'] = reports
                     parent_conn.send(resp)
                 elif req == 'throughput':
