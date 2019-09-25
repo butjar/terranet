@@ -1,0 +1,5 @@
+{% macro input(config) -%}
+{%- set short_name = config.name|replace("Node_", "") -%}
+{{ short_name }} = self.add_client_node("{{ short_name }}",
+    komondor_config=dict(komondor_config["{{ config.name }}"]))
+{%- endmacro -%}
