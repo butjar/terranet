@@ -1,7 +1,7 @@
 # Terranet
 Terranet is an emulator for wireless access networks based on [virtual
 fiber](https://www.telekom.com/en/company/details/virtual-fiber-563322) and
-[terragrap](https://terragraph.com/). Terranet networks have a wireless
+[terragraph](https://terragraph.com/). Terranet networks have a wireless
 backbone connected by mmWave Links (60GHz). The wireless last mile - the
 connection between the wireless backbone and the customer premises - is
 connected with 5GHz WiFi equipment.
