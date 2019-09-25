@@ -14,7 +14,9 @@ setup(
         "configparser",
         "jinja2",
         "whichcraft",
-        "future"
+        "future",
+        "flask",
+        "netns"
     ],
     include_package_data=True,
     package_data={
