@@ -1,4 +1,7 @@
 from functools import partial
+
+from wifi.channel import Channel
+
 from flask import Flask, request, jsonify, abort
 from flask.helpers import locked_cached_property
 
@@ -44,20 +47,14 @@ class ConfigAPI(Flask):
         return jsonify(self.node.komondor_config)
 
     def switch_channel(self):
-        params = ["primary_channel",
-                  "min_channel_allowed",
-                  "max_channel_allowed"]
         payload = request.json
         if not payload:
             # TODO add error message
             abort(400)
-        if all(param in payload for param in params):
-            primary_channel = payload["primary_channel"]
-            min_channel_allowed = payload["min_channel_allowed"]
-            max_channel_allowed = payload["max_channel_allowed"]
-            (success, message) = self.node.switch_channel(primary_channel,
-                                                          min_channel_allowed,
-                                                          max_channel_allowed)
+        if "channel" in payload:
+            channel_num = payload["channel"]
+            channel = Channel(channel_num)
+            (success, message) = self.node.switch_channel(channel)
             if success:
                 return "{}".format(message)
             else:
