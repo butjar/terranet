@@ -11,21 +11,21 @@ class Terralink(TCLink):
                                         intf=intf, *args, **kwargs)
 
 
-class Wifi60GHzLink(Terralink):
+class TerragraphLink(Terralink):
     def __init__(self,
                  node1,
                  node2,
                  intf=TCIntf,
                  *args, **kwargs):
-        super(Wifi60GHzLink, self).__init__(node1=node1, node2=node2,
-                                            intf=intf, *args, **kwargs)
+        super(TerragraphLink, self).__init__(node1=node1, node2=node2,
+                                             intf=intf, *args, **kwargs)
 
 
-class Wifi5GHzLink(Terralink):
+class WifiLink(Terralink):
     def __init__(self,
                  node1,
                  node2,
                  intf=TCIntf,
                  *args, **kwargs):
-        super(Wifi5GHzLink, self).__init__(node1=node1, node2=node2,
-                                           intf=intf, *args, **kwargs)
+        super(WifiLink, self).__init__(node1=node1, node2=node2,
+                                       intf=intf, *args, **kwargs)

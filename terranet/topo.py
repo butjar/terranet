@@ -1,13 +1,19 @@
 from ipmininet.iptopo import IPTopo
+from ipmininet.link import IPLink
 from .router_config import OpenrConfig, TerranetRouterDescription
 
 from .node import (ClientNode, DistributionNode60, DistributionNode5_60,
                    Gateway, IperfDownloadClient, IperfDownloadServer)
-from .link import Wifi5GHzLink, Wifi60GHzLink
+from .link import WifiLink, TerragraphLink
+from .wifi.komondor_config import KomondorSystemConfig
 
 
 class Terratopo(IPTopo):
-    def __init__(self, *args, **kwargs):
+    def __init__(self,
+                 komondor_system_config=None,
+                 *args, **kwargs):
+        if not komondor_system_config:
+            self.komondor_system_config = KomondorSystemConfig()
         super(Terratopo, self).__init__(*args, **kwargs)
 
     def addDaemon(self, router, daemon, default_cfg_class=OpenrConfig,
@@ -42,6 +48,15 @@ class Terratopo(IPTopo):
 
     def add_iperf_server(self, name, **opts):
         return self.addHost(name, cls=IperfDownloadServer, **opts)
+
+    def add_ip_link(self, node1, node2, *args, **kwargs):
+        return self.addLink(node1, node2, cls=IPLink)
+
+    def add_wifi_link(self, node1, node2, *args, **kwargs):
+        return self.addLink(node1, node2, cls=WifiLink)
+
+    def add_terragraph_link(self, node1, node2):
+        return self.addLink(node1, node2, cls=TerragraphLink)
 
     def is_client_node(self, node):
         return self.isNodeType(node, 'is_client_node')
