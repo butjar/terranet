@@ -3,9 +3,6 @@ setup(
     name="terranet",
     version="0.1",
     packages=find_packages(),
-    scripts=['bin/mn_topo_generator.py',
-             'bin/komondor_simulator.py'],
-
     author="Me",
     author_email="me@example.com",
     description="This is an Example Package",
