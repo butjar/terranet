@@ -10,6 +10,10 @@ from ipmininet.router import Router, ProcessHelper
 
 from .router_config import OpenrConfig
 from .config_api import ConfigAPI
+from .link import WifiLink
+
+from .wifi.komondor_config import KomondorNodeConfig
+from .wifi.channel import Channel
 
 import netns
 
@@ -18,14 +22,12 @@ class Terranode(Router):
     def __init__(self,
                  name,
                  config=OpenrConfig,
-                 komondor_config=None,
                  cwd='/tmp',
                  process_manager=ProcessHelper,
                  use_v4=True,
                  use_v6=True,
                  password=None,
                  *args, **kwargs):
-        self._komondor_config = komondor_config
         self.has_changed = False
         super(Terranode, self).__init__(name,
                                         config=config,
@@ -36,9 +38,26 @@ class Terranode(Router):
                                         password=password,
                                         *args, **kwargs)
 
+
+class WifiNode(Terranode):
+    def __init__(self,
+                 name,
+                 komondor_args={},
+                 *args, **kwargs):
+        self._komondor_config = KomondorNodeConfig(name, **komondor_args)
+        super(WifiNode, self).__init__(name,
+                                       *args, **kwargs)
+
     @property
     def komondor_config(self):
         return self._komondor_config
+
+    def channel_config(self):
+        kcfg = self.komondor_config
+        return {"primary_channel": kcfg["primary_channel"],
+                "min_channel_allowed": kcfg["min_channel_allowed"],
+                "max_channel_allowed": kcfg["max_channel_allowed"],
+                "central_freq": kcfg["central_freq"]}
 
     def update_komondor_config(self, config_dict):
         self._komondor_config.update(config_dict)
@@ -70,40 +89,81 @@ class Terranode(Router):
         self.clear_changed()
 
 
-class ClientNode(Terranode):
+class WifiAccessPoint(WifiNode):
     def __init__(self,
                  name,
-                 config=OpenrConfig,
-                 komondor_config=None,
+                 komondor_args={},
                  *args, **kwargs):
+        komondor_args.update({"type": 0})
+        super(WifiAccessPoint, self).__init__(name,
+                                              komondor_args=komondor_args,
+                                              *args, **kwargs)
+
+    def connected_stations(self):
+        stations = []
+        for intf in self.intfList():
+            link = intf.link
+            if link and isinstance(link, WifiLink):
+                node1, node2 = link.intf1.node, link.intf2.node
+                if node1 == self and isinstance(node2, WifiStation):
+                    stations.append(node2)
+                elif node2 == self and isinstance(node1, WifiStation):
+                    stations.append(node1)
+        return stations
+
+
+class WifiStation(WifiNode):
+    def __init__(self,
+                 name,
+                 komondor_args={},
+                 *args, **kwargs):
+        komondor_args.update({"type": 1})
+        super(WifiStation, self).__init__(name,
+                                          komondor_args=komondor_args,
+                                          *args, **kwargs)
+
+
+class ClientNode(WifiStation):
+    def __init__(self,
+                 name,
+                 coordinates={"x": 0, "y": 0, "z": 0},
+                 komondor_args={},
+                 *args, **kwargs):
+        komondor_args.update(coordinates)
         super(ClientNode, self).__init__(name,
-                                         config=config,
-                                         komondor_config=komondor_config,
+                                         komondor_args=komondor_args,
                                          *args, **kwargs)
 
 
 class DistributionNode60(Terranode):
     def __init__(self,
                  name,
-                 config=OpenrConfig,
-                 komondor_config=None,
                  *args, **kwargs):
-        super(DistributionNode60, self).__init__(
-                name, config=config, komondor_config=komondor_config,
-                *args, **kwargs)
+        super(DistributionNode60, self).__init__(name, *args, **kwargs)
 
 
-class DistributionNode5_60(Terranode):
+class DistributionNode5_60(WifiAccessPoint):
     def __init__(self,
                  name,
-                 config=OpenrConfig,
-                 komondor_config=None,
+                 ssid,
+                 available_channels=[Channel(32)],
+                 primary_channel=None,
+                 coordinates={"x": 0, "y": 0, "z": 0},
+                 komondor_args={},
                  fronthaulemulator=None,
                  *args, **kwargs):
+        self.available_channels = available_channels
+        channel_config = available_channels[0].komondor_channel_params
+        if not primary_channel:
+            primary_channel = channel_config["min_channel_allowed"]
+        komondor_args.update({"wlan_code": ssid,
+                              "primary_channel": primary_channel})
+        komondor_args.update(coordinates)
+        komondor_args.update(channel_config)
         self.fronthaulemulator = fronthaulemulator
-        super(DistributionNode5_60, self).__init__(
-                name, config=config, komondor_config=komondor_config,
-                *args, **kwargs)
+        super(DistributionNode5_60, self).__init__(name,
+                                                   komondor_args=komondor_args,
+                                                   *args, **kwargs)
         self.run_config_api_thread()
 
     def run_config_api_thread(self):
@@ -117,24 +177,20 @@ class DistributionNode5_60(Terranode):
             api_thread.start()
 
     def get_channel_config(self):
-        channel_cfg = None
-        if self.komondor_config:
-            primary_channel = self.komondor_config["primary_channel"]
-            min_channel_allowed = self.komondor_config["min_channel_allowed"]
-            max_channel_allowed = self.komondor_config["max_channel_allowed"]
-            channel_cfg = {"primary_channel": primary_channel,
-                           "min_channel_allowed": min_channel_allowed,
-                           "max_channel_allowed": max_channel_allowed}
-        return channel_cfg
+        return self.channel_config()
 
-    def switch_channel(self,
-                       primary_channel,
-                       min_channel_allowed,
-                       max_channel_allowed):
+    def switch_channel(self, channel, primary_channel=None):
+        channel_params = channel.komondor_channel_params
+        if not primary_channel:
+            primary_channel = channel_params["min_channel_allowed"]
+        min_channel_allowed = channel_params["min_channel_allowed"]
+        max_channel_allowed = channel_params["max_channel_allowed"]
+        central_freq = channel_params["central_freq"]
         old_channel_cfg = self.get_channel_config()
         new_channel_cfg = {"primary_channel": primary_channel,
                            "min_channel_allowed": min_channel_allowed,
-                           "max_channel_allowed": max_channel_allowed}
+                           "max_channel_allowed": max_channel_allowed,
+                           "central_freq": central_freq}
         self.update_komondor_config(new_channel_cfg)
         evt = ChannelSwitchEvent(self,
                                  old_channel_cfg,
