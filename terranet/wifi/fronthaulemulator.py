@@ -176,28 +176,9 @@ class FronthaulEmulator(object):
         channel_combinations = list(itertools.product(*channels))
 
         for channels in channel_combinations:
-            config_dict = collections.OrderedDict()
-            config_dict["System"] = collections.OrderedDict(
-                **self.komondor_system_cfg)
-            for i, ap in enumerate(access_points):
-                channel = channels[i]
-                channel_cfg = channel.komondor_channel_params
-                primary_channel = channel_cfg["min_channel_allowed"]
-                ap_cfg = collections.OrderedDict(**ap.komondor_config)
-                ap_cfg.update(channel_cfg)
-                ap_cfg.update({"primary_channel": primary_channel})
-                ap_name = ap.komondor_config.name
-                config_dict[ap_name] = collections.OrderedDict(ap_cfg)
-                for sta in ap.connected_stations():
-                    cfg = collections.OrderedDict(**sta.komondor_config)
-                    cfg.update({"wlan_code": ap_cfg["wlan_code"],
-                                "primary_channel": primary_channel})
-                    cfg.update(channel_cfg)
-                    sta_name = sta.komondor_config.name
-                    config_dict[sta_name] = collections.OrderedDict(cfg)
-            config = KomondorConfig()
-            config.read_dict(config_dict)
+            config = self.__build_channel_config(channels)
             configs.append(config)
+
         cached_configs = self.read_komondor_configs()
         if not use_cache or configs != cached_configs.values():
             info("Not Using cached komondor config.\n")
@@ -217,6 +198,36 @@ class FronthaulEmulator(object):
             info("Using cached komondor config.\n")
             self.komondor_configs = cached_configs
         self.komondor_results = self.read_komondor_results()
+
+    def __build_channel_config(self, channels):
+        config_dict = collections.OrderedDict()
+        config_dict["System"] = collections.OrderedDict(
+            **self.komondor_system_cfg)
+        for i, ap in enumerate(self.net.access_points()):
+            channel = channels[i]
+            cfg = self.__build_bss_config(ap, channel)
+            config_dict.update(cfg)
+        config = KomondorConfig()
+        config.read_dict(config_dict)
+        return config
+
+    def __build_bss_config(self, ap, channel):
+        config = collections.OrderedDict()
+        channel_cfg = channel.komondor_channel_params
+        primary_channel = channel_cfg["min_channel_allowed"]
+        ap_cfg = collections.OrderedDict(**ap.komondor_config)
+        ap_cfg.update(channel_cfg)
+        ap_cfg.update({"primary_channel": primary_channel})
+        ap_name = ap.komondor_config.name
+        config[ap_name] = collections.OrderedDict(ap_cfg)
+        for sta in ap.connected_stations():
+            cfg = collections.OrderedDict(**sta.komondor_config)
+            cfg.update({"wlan_code": ap_cfg["wlan_code"],
+                        "primary_channel": primary_channel})
+            cfg.update(channel_cfg)
+            sta_name = sta.komondor_config.name
+            config[sta_name] = collections.OrderedDict(cfg)
+        return config
 
     def write_komondor_configs(self, configs):
         config_map = []
