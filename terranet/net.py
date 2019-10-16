@@ -3,26 +3,32 @@ import time
 from mininet.link import TCLink, TCIntf
 from mininet.node import OVSSwitch
 from ipmininet.ipnet import IPNet
-from .fronthaulemulator import FronthaulEmulator
 from .link import Terralink
 from .node import (Terranode, ClientNode, DistributionNode60,
                    DistributionNode5_60, IperfDownloadClient,
-                   IperfDownloadServer)
+                   IperfDownloadServer, WifiNode,
+                   WifiAccessPoint, WifiStation)
 from .router_config import OpenrConfig
+
+from .wifi.fronthaulemulator import FronthaulEmulator
+from .wifi.komondor_config import KomondorSystemConfig
 
 
 class Terranet(IPNet):
     def __init__(self,
-                 fronthaulemulator=FronthaulEmulator(),
-                 system_config={},
+                 komondor_system_cfg=None,
+                 fronthaulemulator=None,
+                 komondor_config_dir=None,
                  router=DistributionNode60,
                  config=OpenrConfig,
                  link=Terralink,
                  intf=TCIntf,
                  switch=OVSSwitch,
                  *args, **kwargs):
-        fronthaulemulator.net = self
-        fronthaulemulator.system_config = system_config
+        if not fronthaulemulator:
+            fronthaulemulator = FronthaulEmulator(
+                net=self,
+                komondor_config_dir=komondor_config_dir)
         self.fronthaulemulator = fronthaulemulator
         super(Terranet, self).__init__(router=router,
                                        config=config,
@@ -33,9 +39,10 @@ class Terranet(IPNet):
 
     def build(self):
         super(Terranet, self).build()
-        for node in self.terranodes():
+        for node in self.wifi_nodes():
             node.register_fronthaulemulator(self.fronthaulemulator)
-        self.fronthaulemulator.apply_network_config()
+        self.fronthaulemulator.build_komondor()
+        self.fronthaulemulator.apply_wifi_config()
 
     def start(self):
         super(Terranet, self).start()
@@ -66,11 +73,24 @@ class Terranet(IPNet):
         return filter(lambda x: isinstance(x, DistributionNode5_60),
                       self.terranodes())
 
+    def wifi_nodes(self):
+        return filter(lambda x: isinstance(x, WifiNode),
+                      self.terranodes())
+
+    def access_points(self):
+        return filter(lambda x: isinstance(x, WifiAccessPoint),
+                      self.terranodes())
+
+    def stations(self):
+        return filter(lambda x: isinstance(x, WifiStation),
+                      self.terranodes())
+
     def get_nodes_by_komondor_setting(self, key, value):
         return filter(lambda x: x.komondor_config[key] == value,
                       self.terranodes())
 
-    def connected_client_nodes(self, distribution_node_5_60):
+    def connected_wifi_nodes(self, distribution_node_5_60):
+        connectionsTo()
         wlan_code = distribution_node_5_60.komondor_config["wlan_code"]
         nodes_with_wlan_code = self.get_nodes_by_komondor_setting(
                                         "wlan_code", wlan_code)

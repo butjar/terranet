@@ -4,6 +4,19 @@ import subprocess
 from whichcraft import which
 
 
+def run_komondor_worker(cfg_file,
+                        output_dir=None,
+                        komondor_executable=None,
+                        komondor_args={}):
+    file_name = os.path.basename(cfg_file)
+    result_file = os.path.join(output_dir, file_name)
+    args = komondor_args.copy()
+    args["stats"] = result_file
+    k = Komondor(executable=komondor_executable)
+    (proc, stdout, stderr) = k.run(cfg_file, **args)
+    return stderr
+
+
 class Komondor(object):
     """Wrapper for Komondor simulator"""
     def __init__(self, executable=None):
