@@ -93,7 +93,7 @@ class SingleBandTopo(Terratopo):
         self.addLink(gw, server_b2)
 
         # Build topo
-        super(SimpleTerratopo, self).build(*args, **kwargs)
+        super(SingleBandTopo, self).build(*args, **kwargs)
 
 
 if __name__ == '__main__':

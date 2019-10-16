@@ -89,7 +89,7 @@ class SingleChannelTopo(Terratopo):
         self.addLink(gw, server_b2)
 
         # Build topo
-        super(SimpleTerratopo, self).build(*args, **kwargs)
+        super(SingleChannelTopo, self).build(*args, **kwargs)
 
 
 if __name__ == '__main__':
