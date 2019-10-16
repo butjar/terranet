@@ -104,7 +104,6 @@ if __name__ == '__main__':
         os.path.basename(os.path.splitext(__file__)[0]))
     net = Terranet(topo=topo,
                    komondor_config_dir=komondor_config_dir)
-    net.build()
     net.start()
     IPCLI(net)
     net.stop()
