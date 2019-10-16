@@ -89,8 +89,8 @@ class KomondorSystemConfig(KomondorConfigSection):
             ("collisions_model", 0),
             ("constant_PER", 0),
             ("traffic_model", 99),
-            ("backoff_type", 1),
-            ("cw_adaptation", 0),
+            ("backoff_type", 0),
+            ("cw_adaptation", 1),
             ("pifs_activated", 0),
             ("capture_effect_model", 1)])
         config = defaults
