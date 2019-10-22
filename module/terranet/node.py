@@ -403,21 +403,24 @@ class TerraNetGateway(TerraNetRouter):
             p = self.popen(cmd)
             log.info('Started iperf process for client {} ({}).'.format(dst.name, ip6))
 
+            ioPoller = select.poll()
+            ioPoller.register(p.stdout, select.POLLIN)
+            ioPoller.register(p.stderr, select.POLLIN)
+
             while self._iperf_alive(dst):
-                rlist, _, _ = select.select([p.stdout, p.stderr], [], [], 7)
+                fdlist = ioPoller.poll(7000)
 
-                if not rlist:
+                if len(fdlist) == 0:
                     log.warning('Iperf process for client {} timed out.'.format(dst.name))
-                    continue
 
-                if p.stderr in rlist:
+                if (p.stderr.fileno(), select.POLLIN) in fdlist:
                     err = p.stderr.readline()
 
                     if err != "":
                         err_out = p.stderr.readline()
                         log.warn('Iperf for client {} encountered an error: {} '.format(dst.name, err_out))
 
-                if p.stdout in rlist:
+                if (p.stdout.fileno(), select.POLLIN) in fdlist:
                     o = p.stdout.readline()
 
                     if o == "":
