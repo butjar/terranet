@@ -119,8 +119,9 @@ class FronthaulEmulator:
             # Search for equivalent config
             try:
                 cfg_index = list(map(lambda t: t[0], self.cfg_tuples)).index(new_cfg)
-            except ValueError:
+            except ValueError as e:
                 log.error('Unable to find equivalent configuration!')
+                log.error(e)
                 return False
 
             log.info('Changing to config {}'.format(cfg_index))

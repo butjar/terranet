@@ -1,17 +1,13 @@
 import multiprocessing
 import jinja2
 import terranet.config
+import terranet.util
 import itertools
 import functools
 import logging
 import os
 import math
 import json
-
-
-def channel_combinations():
-    return list(filter(lambda t: t[1] - t[0] in [0, 1, 3, 7],
-                       itertools.product(range(8), repeat=2)))
 
 
 def get_template(*args, **kwargs):
@@ -68,6 +64,7 @@ def generator_worker((iteration, channels), network, max_digits, cfg_dir):
         with open(file_name, "w") as f:
             f.write(template)
 
+
 def generate(args):
     log = logging.getLogger(__name__)
 
@@ -77,7 +74,7 @@ def generate(args):
     except OSError as e:
         log.exception('Unable to open network description!')
 
-    ap_combinations = list(itertools.product(channel_combinations(),
+    ap_combinations = list(itertools.product(terranet.util.valid_5ghz_outdoor_channels(),
                                              repeat=len(network["networks"])))
 
     max_digits = int(math.log10(len(ap_combinations))) + 1
