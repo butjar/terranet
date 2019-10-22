@@ -70,6 +70,12 @@ parts:
     plugin: nil
     stage-packages:
       - mininet
+    filesets:
+        exclude-doc:
+        - -usr/share/doc
+    stage:
+      - $exclude-doc
+        
     after: ['python-interpreter']
 
   ipmininet:
@@ -83,4 +89,9 @@ parts:
     after: ['python-interpreter', 'mininet']
     stage-packages: #Needed for sshd
       - openssh-client
+    filesets:
+        exclude-doc:
+        - -usr/share/doc
+    stage:
+      - $exclude-doc
 
