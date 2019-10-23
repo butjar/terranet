@@ -86,7 +86,7 @@ class FronthaulEmulator:
 
     def publish_config(self):
         payload = {'aps': []}
-        for ap in self.current_tuple[-1].get_access_points():
+        for ap in self.current_tuple[0].get_access_points():
             entry = {'name': ap.short(), 'chan_min': ap.min_channel_allowed, 'chan_max': ap.max_channel_allowed}
             payload['aps'].append(entry)
 
