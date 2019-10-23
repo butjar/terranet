@@ -1,5 +1,0 @@
-{% macro input(config) -%}
-{%- set short_name = config.name|replace("Node_", "") -%}
-{{ short_name }} = self.add_distribution_node_5_60("{{ short_name }}",
-    komondor_config=dict(komondor_config["{{ config.name }}"]))
-{%- endmacro -%}
