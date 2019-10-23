@@ -13,22 +13,25 @@ from terranet.wifi.komondor_config import KomondorConfig
 from terranet.wifi.channel import Channel
 
 
-#        cpe_a1      cpe_b1      cpe_b2  (CPEs)
-#          |           |           |
-#    |  +-----+     +-----+     +-----+
-# 20 |  |cn_a1|     |cn_b1|     |cn_b2|  (STAs/ CNs)
-#    |  +-----+     +-----+     +-----+
-#    |     |           |       /
-#    |     |           |      /
-# 10 |     |           |     /
-#    |     |           |    /
-#    |     |           |   /
-#    |  +------+    +------+
-#  0 |  | dn_a |    | dn_b |             (APs/ DNs)
-#    |  +------+    +------+
-#    ---------------------------------->
-#  -10     0    15    20    25    30
 class SingleChannelTopo(Terratopo):
+    """
+           cpe_a1      cpe_b1      cpe_b2  (CPEs)
+             |           |           |
+       |  +-----+     +-----+     +-----+
+    20 |  |cn_a1|     |cn_b1|     |cn_b2|  (STAs/ CNs)
+       |  +-----+     +-----+     +-----+
+       |     |           |       /
+       |     |           |      /
+    10 |     |           |     /
+       |     |           |    /
+       |     |           |   /
+       |  +------+    +------+
+     0 |  | dn_a |    | dn_b |             (APs/ DNs)
+       |  +------+    +------+
+       ---------------------------------->
+     -10     0    15    20    25    30
+    """
+
     def build(self, *args, **kwargs):
         # Segment A
         dn_a = self.add_distribution_node_5_60(

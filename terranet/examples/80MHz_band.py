@@ -13,22 +13,25 @@ from terranet.wifi.komondor_config import KomondorConfig
 from terranet.wifi.channel import Channel
 
 
-#        cpe_a1      cpe_b1      cpe_b2  (CPEs)
-#          |           |           |
-#    |  +-----+     +-----+     +-----+
-# 20 |  |cn_a1|     |cn_b1|     |cn_b2|  (STAs/ CNs)
-#    |  +-----+     +-----+     +-----+
-#    |     |           |       /
-#    |     |           |      /
-# 10 |     |           |     /
-#    |     |           |    /
-#    |     |           |   /
-#    |  +------+    +------+
-#  0 |  | dn_a |    | dn_b |             (APs/ DNs)
-#    |  +------+    +------+
-#    ---------------------------------->
-#  -10     0    15    20    25    30
 class SingleBandTopo(Terratopo):
+    """
+           cpe_a1      cpe_b1      cpe_b2  (CPEs)
+             |           |           |
+       |  +-----+     +-----+     +-----+
+    20 |  |cn_a1|     |cn_b1|     |cn_b2|  (STAs/ CNs)
+       |  +-----+     +-----+     +-----+
+       |     |           |       /
+       |     |           |      /
+    10 |     |           |     /
+       |     |           |    /
+       |     |           |   /
+       |  +------+    +------+
+     0 |  | dn_a |    | dn_b |             (APs/ DNs)
+       |  +------+    +------+
+       ---------------------------------->
+     -10     0    15    20    25    30
+    """
+
     def build(self, *args, **kwargs):
         channel_list = [Channel(32), Channel(34), Channel(36), Channel(38),
                         Channel(40), Channel(42), Channel(44), Channel(46),
