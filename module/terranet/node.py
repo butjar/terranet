@@ -82,16 +82,15 @@ class FronthaulEmulator:
                                     cn.name))
 
                         c_intf.set_tbf(rate // max(1, len(clients)))
+                        self.publish_config()
 
-            text = ''
-            for ap in cfg_tuple[0].get_access_points():
-                text += '<p>{name}: {min} -- {max} ({bw} MHz)</p>\n'.format(name=ap.short(),
-                                                                            min=ap.min_channel_allowed,
-                                                                            max=ap.max_channel_allowed,
-                                                                            bw=20 * (int(ap.max_channel_allowed) - int(
-                                                                                ap.min_channel_allowed) + 1))
+    def publish_config(self):
+        payload = {'aps': []}
+        for ap in self.current_tuple[-1].get_access_points():
+            entry = {'name': ap.short(), 'chan_min': ap.min_channel_allowed, 'chan_max': ap.max_channel_allowed}
+            payload['aps'].append(entry)
 
-            self.pub.send_multipart(['config', text])
+        self.pub.send_multipart(['config', json.dumps(payload)])
 
     def clients_changed(self):
         self.switch_config(self.current_tuple)
