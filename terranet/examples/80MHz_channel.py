@@ -93,7 +93,10 @@ if __name__ == '__main__':
         os.path.abspath("./.komondor"),
         os.path.basename(os.path.splitext(__file__)[0]))
     net = Terranet(topo=topo,
-                   komondor_config_dir=komondor_config_dir)
+                   komondor_config_dir=komondor_config_dir,
+                   ipBase=u"10.0.0.0/16",
+                   ip6Base=u"fd00:0:0:0::/56",
+                   max_v6_prefixlen=64)
     net.start()
     IPCLI(net)
     net.stop()
