@@ -48,9 +48,6 @@ class SingleBandTopo(Terratopo):
         cpe_a1 = self.add_iperf_client("cpe_a1", server_name="server_a1")
         self.addLink(cn_a1, cpe_a1)
 
-        self.addSubnet(nodes=[dn_a, cn_a1, cpe_a1],
-                       subnets=["10.1.0.0/16", "fd00:0:1::/48"])
-
         # Segment B
         dn_b = self.add_distribution_node_5_60(
             "dn_b",
@@ -71,9 +68,6 @@ class SingleBandTopo(Terratopo):
 
         cpe_b2 = self.add_iperf_client("cpe_b2", server_name="server_b2")
         self.addLink(cn_b2, cpe_b2)
-
-        self.addSubnet(nodes=[dn_b, cn_b1, cpe_b1, cn_b2, cpe_b2],
-                       subnets=["10.2.0.0/16", "fd00:0:2::/48"])
 
         # Add WiFi 60GHz Links between DN_A and DN_B
         self.add_terragraph_link(dn_a, dn_b)
