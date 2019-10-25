@@ -65,7 +65,8 @@ class CustomerLearningSwitch(app_manager.RyuApp):
                                 table_id=table_id,
                                 match=match,
                                 instructions=inst)
-        datapath.send_msg(mod)
+        # Match does not work
+        # datapath.send_msg(mod)
         self.logger.info("Add customer subnet match to table {}. "
                          "Processing flow at table {}.".format(table_id,
                                                                dst_table_id))
