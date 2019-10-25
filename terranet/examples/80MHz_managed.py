@@ -94,16 +94,13 @@ class ManagedBandTopo(Terratopo):
 
         # Add iperf servers behind the gateway
         server_a1 = self.add_iperf_server("server_a1")
-        lgwserva1 = self.addLink(gw, server_a1)
-        lgwserva1[server_a1].addParams(ip=("192.168.1.1/16", "fd00:0:1::1/56"))
+        self.addLink(gw, server_a1)
 
         server_b1 = self.add_iperf_server("server_b1")
-        lgwservb1 = self.addLink(gw, server_b1)
-        lgwservb1[server_b1].addParams(ip=("192.168.1.2/16", "fd00:0:1::2/56"))
+        self.addLink(gw, server_b1)
 
         server_b2 = self.add_iperf_server("server_b2")
-        lgwservb2 = self.addLink(gw, server_b2)
-        lgwservb2[server_b2].addParams(ip=("192.168.1.3/16", "fd00:0:1::3/56"))
+        self.addLink(gw, server_b2)
 
         # Build topo
         super(ManagedBandTopo, self).build(*args, **kwargs)
