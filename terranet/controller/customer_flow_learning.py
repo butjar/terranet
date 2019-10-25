@@ -96,6 +96,7 @@ class CustomerLearningSwitch(app_manager.RyuApp):
                                              actions)]
         mod = parser.OFPFlowMod(datapath=datapath,
                                 table_id=table_id,
+                                priority=0,
                                 match=parser.OFPMatch(),
                                 instructions=inst)
         datapath.send_msg(mod)
