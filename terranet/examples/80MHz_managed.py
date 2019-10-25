@@ -51,10 +51,11 @@ class ManagedBandTopo(Terratopo):
 
         cpe_a1 = self.add_iperf_client("cpe_a1", server_name="server_a1")
         lcna1cpea1 = self.addLink(cn_a1, cpe_a1)
+
         lcna1cpea1[cn_a1].addParams(ip=("10.128.0.1/16",
-                                        "fd00:0:0:100::1/56"))
+                                        "fd00:0:0:8000::1/64"))
         lcna1cpea1[cpe_a1].addParams(ip=("10.128.1.1/16",
-                                         "fd00:0:0:1101::1/56"))
+                                         "fd00:0:0:8000:8000::1/64"))
 
         # Segment B
         dn_b = self.add_distribution_node_5_60(
@@ -70,9 +71,9 @@ class ManagedBandTopo(Terratopo):
         cpe_b1 = self.add_iperf_client("cpe_b1", server_name="server_b1")
         lcnb1cpeb1 = self.addLink(cn_b1, cpe_b1)
         lcnb1cpeb1[cn_b1].addParams(ip=("10.129.0.1/16",
-                                        "fd00:0:0:200::1/56"))
+                                        "fd00:0:0:8100::1/64"))
         lcnb1cpeb1[cpe_b1].addParams(ip=("10.129.2.1/16",
-                                         "fd00:0:0:1201::1/56"))
+                                         "fd00:0:0:8100:8000::1/64"))
 
         cn_b2 = self.add_client_node("cn_b2",
                                      coordinates={"x": 30, "y": 20, "z": 0})
@@ -81,9 +82,9 @@ class ManagedBandTopo(Terratopo):
         cpe_b2 = self.add_iperf_client("cpe_b2", server_name="server_b2")
         lcnb2cpeb2 = self.addLink(cn_b2, cpe_b2)
         lcnb2cpeb2[cn_b2].addParams(ip=("10.129.0.2/16",
-                                        "fd00:0:0:200::2/56"))
+                                        "fd00:0:0:8101::1/64"))
         lcnb2cpeb2[cpe_b2].addParams(ip=("10.129.3.1/16",
-                                         "fd00:0:0:1202::1/56"))
+                                         "fd00:0:0:8101:8000::1/64"))
 
         # Add WiFi 60GHz Links between DN_A and DN_B
         self.add_terragraph_link(dn_a, dn_b)
@@ -115,7 +116,7 @@ if __name__ == '__main__':
     net = Terranet(topo=topo,
                    komondor_config_dir=komondor_config_dir,
                    ipBase=u"10.0.0.0/16",
-                   ip6Base=u"fd00:0:0:0::/56",
+                   ip6Base=u"fd00::/49",
                    max_v6_prefixlen=64)
     ctrlr = RemoteController("flow_ctrlr", port=6633)
     net.addController(ctrlr)
