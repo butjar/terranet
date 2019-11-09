@@ -228,6 +228,13 @@ class Node(ConfigABC):
     def __eq__(self, other):
         # NOTE: This should really be done explicitly. But I'm lazy...
         # TODO: One should implement __hash__ if he overrides __eq__
+       #NOTE: Simple hack for now
+        if (int(self.min_channel_allowed) == int(other.min_channel_allowed) and int(self.max_channel_allowed) == int(other.max_channel_allowed)):
+            return True
+        else:
+            return False
+
+
         for a in self.__dict__.keys():
             if a not in other.__dict__:
                 return False
