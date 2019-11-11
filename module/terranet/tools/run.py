@@ -14,14 +14,15 @@ import sys
 
 # TODO: Unify switches into one zmq interface with command handlers for different tasks
 # That way we could use one port to connect to.
-class FronthaulEmulatorSwitch(threading.Thread):
-    def __init__(self, port, fh_emulator, default, best):
-        super(FronthaulEmulatorSwitch, self).__init__()
-        self.port =  port
+class CtrlSwitch(threading.Thread):
+    def __init__(self, port, fh_emulator, default, best, net):
+        super(CtrlSwitch, self).__init__()
+        self.port = port
         self.running = False
         self.fh_emulator = fh_emulator
         self.default = default
         self.best = best
+        self.net = net
 
     def run(self):
         self.running = True
@@ -43,10 +44,21 @@ class FronthaulEmulatorSwitch(threading.Thread):
                     log.exception('ZMQ Error: {}'.format(e))
                     continue
 
-                with self.fh_emulator.lock:
-                    index = self.best if content == 'true' else self.default
-                    self.fh_emulator.current_tuple = self.fh_emulator.cfg_tuples[index]
-                    self.fh_emulator.switch_config(self.fh_emulator.current_tuple)
+                if content != 'true':
+                    ctrl_node = self.net['c']
+                    ctrl_node.detach_controller()
+
+                    with self.fh_emulator.lock:
+                        index = self.default
+                        self.fh_emulator.current_tuple = self.fh_emulator.cfg_tuples[index]
+                        self.fh_emulator.switch_config(self.fh_emulator.current_tuple)
+
+                else:
+                    path = 'heuristic_ctrl.py'  # TODO maybe dont hard code this
+                    log.info('Loading controller from {}'.format(path))
+                    ctrl_node = self.net['c']
+                    gw = self.net['gw']
+                    ctrl_node.attach_controller(gw.intf().ip6, path)
 
                 rep.send_multipart(['Ok', 'Ok'])
 
@@ -229,8 +241,8 @@ def run(args):
     gw.iperf_report_cb = report_iperf
     gw.start_all_iperfs()
 
-    flipswitch = FronthaulEmulatorSwitch(4567, limiter, cfg_tuples.index(default), cfg_tuples.index(best))
-    flipswitch.start()
+    ctrl_switch = CtrlSwitch(args.controller_port, limiter, cfg_tuples.index(default), cfg_tuples.index(best), net)
+    ctrl_switch.start()
 
     cswitch = ClientSwitch(8888, gw, net)
     cswitch.start()
@@ -246,9 +258,9 @@ def run(args):
         topo_server.terminate()
         log.info('Terminated Web server.')
 
-        log.info('Stopping flipswitch...')
-        flipswitch.running = False
-        flipswitch.join()
+        log.info('Stopping ctrl_switch...')
+        ctrl_switch.running = False
+        ctrl_switch.join()
 
         log.info('Stopping cswitch...')
         cswitch.running = False

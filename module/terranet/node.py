@@ -482,6 +482,10 @@ class TerraNetControlNode(TerraNetHost):
 
     def attach_controller(self, gw_ip6, path, gw_api_port=6666, *args, **kwargs):
         log = logging.getLogger(__name__)
+
+        # Safety first!
+        self.detach_controller()
+
         ctrl_module = self._load_module('customctrl', path)
 
         controller_cls = None

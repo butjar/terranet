@@ -89,5 +89,10 @@ if __name__ == '__main__':
                             type=int,
                             default=4568)
 
+    run_parser.add_argument('-o', '--controller-port',
+                            help='Set port for switching controller. Defaults to 4567.',
+                            type=int,
+                            default=4567)
+
     args = parser.parse_args()
     args.func(args)
