@@ -54,20 +54,30 @@ def main():
     req_managed.connect("tcp://{}:{}".format(hostname_managed, client_ctrl_port))
 
     while True:
-        sendAction(req_managed, b'STA_A1_C2', b'off')
-        time.sleep(5)
-        sendAction(req_managed, b'STA_A2_C2', b'off')
-        time.sleep(3)
-        sendAction(req_managed, b'STA_A3_C1', b'off')
-        time.sleep(30)
+        state = random.choice([b'on', b'off', None])
 
-        sendAction(req_managed, b'STA_A1_C2', b'on')
-        time.sleep(2)
-        sendAction(req_managed, b'STA_A2_C2', b'on')
-        time.sleep(8)
-        sendAction(req_managed, b'STA_A3_C1', b'on')
-        time.sleep(25)
+        if state == b'on':
+            candidates = list(filter(lambda c: can_switch_on(c), customers))
+            if not candidates:
+                continue
 
+            client = random.choice(candidates)
+            customers[client] = 1
+        elif state == b'off':
+            candidates = list(filter(lambda c: can_switch_off(c), customers))
+            if not candidates:
+                continue
+
+            client = random.choice(candidates)
+            customers[client] = 0
+        else:
+            client = None
+
+        if state is not None:
+            print(client, state)
+            sendAction(req_managed, client, state)
+
+        time.sleep(10)
 
 
 if __name__ == '__main__':

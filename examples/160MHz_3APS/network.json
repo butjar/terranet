@@ -12,19 +12,19 @@
           "x": 0,
           "y": 20,
           "z": 0,
-          "clients": 1
+          "clients": 2
         },
         {
           "x": 20,
           "y": 20,
           "z": 0,
-          "clients": 1
+          "clients": 2
         },
         {
           "x": 40,
           "y": 20,
           "z": 0,
-          "clients": 1
+          "clients": 2
         }
              ]
     },
@@ -40,7 +40,7 @@
           "x": 60,
           "y": 20,
           "z": 0,
-          "clients": 3
+          "clients": 2
         }
       ]
     },
@@ -62,7 +62,7 @@
           "x": 100,
           "y": 20,
           "z": 0,
-          "clients": 1
+          "clients": 2
         }
       ]
     }
