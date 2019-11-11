@@ -51,7 +51,7 @@ def main():
     req_managed.connect("tcp://{}:{}".format(hostname_managed, client_ctrl_port))
 
     while True:
-        state = random.choice([b'on', b'off'])
+        state = random.choice([b'on', b'off', None])
 
         if state == b'on':
             candidates = list(filter(lambda c: can_switch_on(c), customers))
@@ -60,17 +60,21 @@ def main():
 
             client = random.choice(candidates)
             customers[client] = 1
-        else:
+        elif state == b'off':
             candidates = list(filter(lambda c: can_switch_off(c), customers))
             if not candidates:
                 continue
 
             client = random.choice(candidates)
             customers[client] = 0
+        else:
+            client = None
 
-        print(client, state)
-        sendAction(req_managed, client, state)
-        time.sleep(20)
+        if state is not None:
+            print(client, state)
+            sendAction(req_managed, client, state)
+
+        time.sleep(10)
 
 
 if __name__ == '__main__':
