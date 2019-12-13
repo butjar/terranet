@@ -27,7 +27,80 @@ class CustomerMonitor(customer_flow_matching.CustomerFlowMatching):
         self.influxclient = InfluxDBClient(username="admin",
                                            password="admin",
                                            database=dbname)
+        self.influxclient.drop_database(dbname)
         self.influxclient.create_database(dbname)
+
+        # Create continous query to sample throughputs
+        interval = self.__class__.INTERVAL
+        throughputs_select = '''SELECT non_negative_derivative(max("value"), 1s) * 8
+                                AS "value"
+                                INTO "throughputs"
+                                FROM "byte_count_in"
+                                WHERE time > now() -{}s
+                                GROUP BY time({}s), "ipv6"'''.format(interval,
+                                                                     interval)
+        self.influxclient.create_continuous_query('throughputs',
+                                                  throughputs_select,
+                                                  database='customerflows')
+
+        # Create continous query for total net throughput
+        net_throughput_select = '''SELECT sum("value")
+                                   AS "value"
+                                   INTO "net_throughput"
+                                   FROM "throughputs"
+                                   GROUP BY time({}s)'''.format(interval)
+        self.influxclient.create_continuous_query('net_throughput',
+                                                  net_throughput_select,
+                                                  database='customerflows')
+
+        net_throughput_squared_select = '''
+            SELECT pow(last("value"), 2)
+            AS "net_throughput_squared"
+            INTO "janes_data"
+            FROM "net_throughput"
+            GROUP BY time({}s)'''.format(interval)
+        self.influxclient.create_continuous_query(
+            'net_throughput_squared', net_throughput_squared_select,
+            database='customerflows')
+
+        # Create continous query for customer count
+        customer_count_select = '''SELECT count("last")
+                                   AS "customer_count"
+                                   INTO "janes_data"
+                                   FROM (SELECT last("value")
+                                         FROM "throughputs"
+                                         GROUP BY "ipv6")
+                                   GROUP BY time({}s)'''.format(interval)
+        self.influxclient.create_continuous_query('customer_count',
+                                                  customer_count_select,
+                                                  database='customerflows')
+
+        sum_squared_throughputs_select = '''
+            SELECT sum("squares")
+            AS "sum_squared_throughputs"
+            INTO "janes_data"
+            FROM (SELECT pow(last("value"), 2)
+                  AS "squares"
+                  FROM "throughputs"
+                  GROUP BY "ipv6")
+            GROUP BY time({}s)'''.format(interval)
+        self.influxclient.create_continuous_query(
+            'sum_squared_throughputs', sum_squared_throughputs_select,
+            database='customerflows')
+
+        # Create continous query for Jane's fairness index
+        fairness_index_select = '''SELECT last("fairness_index")
+                                   AS "value"
+                                   INTO "janes_fairness_index"
+                                   FROM (SELECT "net_throughput_squared"
+                                                / "customer_count"
+                                                / "sum_squared_throughputs"
+                                         AS "fairness_index"
+                                         FROM "janes_data")
+                                   GROUP BY time({}s)'''.format(interval)
+        self.influxclient.create_continuous_query('fairness_index',
+                                                  fairness_index_select,
+                                                  database='customerflows')
 
     @set_ev_cls(ofp_event.EventOFPStateChange,
                 [MAIN_DISPATCHER, DEAD_DISPATCHER])
@@ -71,21 +144,36 @@ class CustomerMonitor(customer_flow_matching.CustomerFlowMatching):
         body = ev.msg.body
 
         for stat in [flow for flow in body if flow.priority > 1]:
-            datapoint = {"tags": {}, "fields": {}}
-
             if stat.match.get("ipv6_src"):
-                measurement = "ipv6_src_{}".format(stat.match["ipv6_src"])
-                datapoint["measurement"] = measurement
+                ipv6 = stat.match["ipv6_src"]
+                measurements = ("packet_count_out", "byte_count_out")
 
             if stat.match.get("ipv6_dst"):
-                measurement = "ipv6_dst_{}".format(stat.match["ipv6_dst"])
-                datapoint["measurement"] = measurement
+                ipv6 = stat.match["ipv6_dst"]
+                measurements = ("packet_count_in", "byte_count_in")
 
-            datapoint["fields"].update({
-                "packet_count": stat.packet_count,
-                "byte_count": stat.byte_count
-            })
-            self.influxclient.write_points([datapoint])
+            datapoints = [
+                {
+                    "measurement": measurements[0],
+                    "tags": {
+                        "ipv6": ipv6
+                    },
+                    "fields": {
+                        "value": stat.packet_count
+                    }
+                },
+                {
+                    "measurement": measurements[1],
+                    "tags": {
+                        "ipv6": ipv6
+                    },
+                    "fields": {
+                        "value": stat.byte_count
+                    }
+                }
+            ]
+
+            self.influxclient.write_points(datapoints)
             self.logger.info("CustomerMonitor: Received stats: "
                              "table_id {}, "
                              "match {}, "
