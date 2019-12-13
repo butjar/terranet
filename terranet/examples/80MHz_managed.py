@@ -34,9 +34,8 @@ class ManagedBandTopo(Terratopo):
     """
 
     def build(self, *args, **kwargs):
-        channel_list = [Channel(32), Channel(34), Channel(36), Channel(38),
-                        Channel(40), Channel(42), Channel(44), Channel(46),
-                        Channel(48)]
+        channel_list = [Channel(36), Channel(38), Channel(40), Channel(42),
+                        Channel(44), Channel(46), Channel(48)]
 
         # Segment A
         dn_a = self.add_distribution_node_5_60(
