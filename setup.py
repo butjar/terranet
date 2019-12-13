@@ -13,7 +13,8 @@ setup(
         "whichcraft",
         "future",
         "flask",
-        "netns"
+        "netns",
+        "influxdb"
     ],
     include_package_data=True,
     package_data={
