@@ -1,7 +1,14 @@
+import os
 from setuptools import setup, find_packages
+
+# https://packaging.python.org/guides/single-sourcing-package-version/
+# 4th option
+with open(os.path.join(os.getcwd(), 'VERSION')) as version_file:
+    version = version_file.read().strip()
+
 setup(
     name="terranet",
-    version="0.1",
+    version=version,
     packages=find_packages(),
     author="Me",
     author_email="me@example.com",
