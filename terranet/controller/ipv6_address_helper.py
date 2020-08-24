@@ -4,7 +4,7 @@ import ipaddress
 class IPv6AddressHelper:
     @classmethod
     def parse_address(cls, ip):
-        return ipaddress.IPv6Address(unicode(ip))
+        return ipaddress.IPv6Address(str(ip))
 
     @classmethod
     def prefix(cls, ip):

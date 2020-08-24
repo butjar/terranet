@@ -5,9 +5,9 @@ from mininet.node import OVSSwitch
 from ipmininet.ipnet import IPNet
 from .link import Terralink
 from .node import (Terranode, ClientNode, DistributionNode60,
-                   DistributionNode5_60, IperfDownloadClient,
-                   IperfDownloadServer, WifiNode,
-                   WifiAccessPoint, WifiStation)
+                   DistributionNode5_60, IperfHost, IperfClient,
+                   IperfServer, WifiNode, WifiAccessPoint,
+                   WifiStation)
 from .router_config import OpenrConfig
 
 from .wifi.fronthaulemulator import FronthaulEmulator
@@ -46,61 +46,76 @@ class Terranet(IPNet):
 
     def start(self):
         super(Terranet, self).start()
-        for server in self.get_iperf_download_servers():
-            server.run_iperf_server()
-        for client in self.get_iperf_download_clients():
-            if client.server_name:
-                client.host = self[client.server_name]
-            if client.host:
-                client.run_iperf_client()
+        self.start_iperf_hosts()
+
+    def start_iperf_hosts(self):
+        # resolve iperf server addresses
+        iperf_server_names = [x.name for x in self.get_iperf_servers()]
+        for iperf_client in self.get_iperf_clients():
+            if iperf_client.host in iperf_server_names:
+                iperf_server = self[iperf_client.host]
+                iperf_server_ip = iperf_server.intfList()[0].ip6
+                iperf_client.host = iperf_server_ip
+
+        # autostart iperf host if enabled
+        for iperf_host in self.get_iperf_hosts():
+            if iperf_host.autostart:
+                if iperf_host.autostart_params:
+                    iperf_host.run(iperf_host.autostart_params)
+                else:
+                    iperf_host.run()
 
     def terranodes(self):
-        return filter(lambda x: isinstance(x, Terranode),
-                      self.routers)
+        return list(filter(lambda x: isinstance(x, Terranode),
+                           self.routers))
 
     def client_nodes(self):
-        return filter(lambda x: isinstance(x, ClientNode),
-                      self.terranodes())
+        return list(filter(lambda x: isinstance(x, ClientNode),
+                           self.terranodes()))
 
     def distribution_nodes(self):
         return distribution_nodes_60 + distribution_nodes_5_60
 
     def distribution_nodes_60(self):
-        return filter(lambda x: isinstance(x, DistributionNode60),
-                      self.terranodes())
+        return list(filter(lambda x: isinstance(x, DistributionNode60),
+                           self.terranodes()))
 
     def distribution_nodes_5_60(self):
-        return filter(lambda x: isinstance(x, DistributionNode5_60),
-                      self.terranodes())
+        return list(filter(lambda x: isinstance(x, DistributionNode5_60),
+                           self.terranodes()))
 
     def wifi_nodes(self):
-        return filter(lambda x: isinstance(x, WifiNode),
-                      self.terranodes())
+        return list(filter(lambda x: isinstance(x, WifiNode),
+                           self.terranodes()))
 
     def access_points(self):
-        return filter(lambda x: isinstance(x, WifiAccessPoint),
-                      self.terranodes())
+        return list(filter(lambda x: isinstance(x, WifiAccessPoint),
+                           self.terranodes()))
 
     def stations(self):
-        return filter(lambda x: isinstance(x, WifiStation),
-                      self.terranodes())
+        return list(filter(lambda x: isinstance(x, WifiStation),
+                           self.terranodes()))
 
     def get_nodes_by_komondor_setting(self, key, value):
-        return filter(lambda x: x.komondor_config[key] == value,
-                      self.terranodes())
+        return list(filter(lambda x: x.komondor_config[key] == value,
+                           self.terranodes()))
 
     def connected_wifi_nodes(self, distribution_node_5_60):
         connectionsTo()
         wlan_code = distribution_node_5_60.komondor_config["wlan_code"]
         nodes_with_wlan_code = self.get_nodes_by_komondor_setting(
                                         "wlan_code", wlan_code)
-        return filter(lambda x: isinstance(x, ClientNode),
-                      nodes_with_wlan_code)
+        return list(filter(lambda x: isinstance(x, ClientNode),
+                           nodes_with_wlan_code))
 
-    def get_iperf_download_clients(self):
-        return filter(lambda x: isinstance(x, IperfDownloadClient),
-                      self.hosts)
+    def get_iperf_hosts(self):
+        return list(filter(lambda x: isinstance(x, IperfHost),
+                           self.hosts))
 
-    def get_iperf_download_servers(self):
-        return filter(lambda x: isinstance(x, IperfDownloadServer),
-                      self.hosts)
+    def get_iperf_clients(self):
+        return list(filter(lambda x: isinstance(x, IperfClient),
+                           self.hosts))
+
+    def get_iperf_servers(self):
+        return list(filter(lambda x: isinstance(x, IperfServer),
+                           self.hosts))

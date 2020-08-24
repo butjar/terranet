@@ -1,9 +1,9 @@
 from functools import partial
 
-from wifi.channel import Channel
-
 from flask import Flask, request, jsonify, abort
 from flask.helpers import locked_cached_property
+
+from .wifi.channel import Channel
 
 
 class ConfigAPI(Flask):

@@ -6,6 +6,7 @@ import subprocess
 from mininet.log import warn
 from mininet.node import Host, OVSBridge
 
+from ipmininet.host import IPHost
 from ipmininet.router import Router, ProcessHelper
 
 from .router_config import OpenrConfig
@@ -204,10 +205,14 @@ class Gateway(OVSBridge):
         super(Gateway, self).__init__(name, **params)
 
 
-class IperfHost(Host):
-    def __init__(self, name, **params):
-        super(IperfHost, self).__init__(name, **params)
         if "logfile" in params:
+class IperfHost(IPHost):
+    def __init__(self,
+                 name,
+                 autostart=True,
+                 autostart_params=None,
+                 *args, **kwargs):
+        super(IperfHost, self).__init__(name, *args, **kwargs)
             self.logfile = params["logfile"]
         else:
             self.logfile = "/tmp/iperf_{}.log".format(self.name)
@@ -223,11 +228,12 @@ class IperfHost(Host):
         super(IperfHost, self).terminate()
 
 
-class IperfDownloadClient(IperfHost):
-    def __init__(self, name, host=None, server_name=None, **params):
-        self._host = host
-        self.server_name = server_name
-        super(IperfDownloadClient, self).__init__(name, **params)
+class IperfClient(IperfHost):
+    def __init__(self,
+                 name,
+                 host=None,
+                 *args, **kwargs):
+        super(IperfClient, self).__init__(name, *args, **kwargs)
 
     @property
     def host(self):
@@ -235,7 +241,7 @@ class IperfDownloadClient(IperfHost):
 
     @host.setter
     def host(self, host):
-        if isinstance(host, IperfDownloadServer):
+        if isinstance(host, IperfServer):
             self._host = host.intfList()[0].ip6
         else:
             self._host = host
@@ -244,6 +250,7 @@ class IperfDownloadClient(IperfHost):
                          bin="iperf3",
                          args="-6 -R -t 0 -i 10",
                          bind_address=None):
+
         if not self.host:
             raise ValueError("""Host attribute must be set before running
                                 iperf client.""")
@@ -258,10 +265,21 @@ class IperfDownloadClient(IperfHost):
         self.iperf_pid = p.pid
         return p
 
+    def terminate(self):
+        super(IperfClient, self).terminate()
 
-class IperfDownloadServer(IperfHost):
-    def __init__(self, name, **params):
-        super(IperfDownloadServer, self).__init__(name, **params)
+
+class IperfReverseClient(IperfClient):
+    def __init__(self,
+                 name,
+                 host=None,
+                 *args, **kwargs):
+        super(IperfReverseClient, self).__init__(name, host=host, *args, **kwargs)
+
+
+class IperfServer(IperfHost):
+    def __init__(self, name, *args, **kwargs):
+        super(IperfServer, self).__init__(name, *args, **kwargs)
 
     def run_iperf_server(self,
                          bin="iperf3",
