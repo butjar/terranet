@@ -253,12 +253,10 @@ class FronthaulEmulator(object):
                      if f.endswith(".cfg")]
         pool = multiprocessing.Pool()
 
-        komondor_executable = "/home/mininet/Komondor/Code/build/komondor_main"
         komondor_args = {"time": 100,
                          "seed": 1000}
         f = partial(run_komondor_worker,
                     output_dir=self.komondor_output_dir,
-                    komondor_executable=komondor_executable,
                     komondor_args=komondor_args)
         pool.map(f, cfg_files)
 
