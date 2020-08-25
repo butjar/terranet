@@ -3,7 +3,7 @@ import signal
 from threading import Thread, Event
 import subprocess
 
-from mininet.log import warn
+from mininet.log import info, warn
 from mininet.node import Host, OVSBridge
 
 from ipmininet.host import IPHost
@@ -216,7 +216,7 @@ class IperfHost(IPHost):
             self.logfile = params["logfile"]
         else:
             self.logfile = "/tmp/iperf_{}.log".format(self.name)
-        self.iperf_pid = None
+        self.pids = {}
         self.bind_address = None
         self.autostart = autostart
         self.autostart_params = autostart_params
@@ -231,15 +231,26 @@ class IperfHost(IPHost):
         if not bind_address:
             self.bind_address = iface.ip6
 
+        # Kill current processes
+        self.stop()
         # Implement iperf command in subclass
         pass
-    def terminate(self):
-        if self.iperf_pid:
+
+    def stop(self):
+        for process, pid in self.pids.items():
             try:
-                os.killpg(self.iperf_pid, signal.SIGHUP)
+                os.killpg(pid, signal.SIGHUP)
+                info("Stopped process {} with PID {}.". format(process,
+                                                              pid))
             except Exception as e:
-                warn("""Could not kill iperf process with PID: {}\n
-                        {}""".format(self.iperf_pid, e))
+                warn("""Could not stop process {} with PID: {}\n
+                        {}""".format(process,
+                                     pid,
+                                     e))
+        self.pids = {}
+
+    def terminate(self):
+        self.stop()
         super(IperfHost, self).terminate()
 
 
@@ -284,11 +295,8 @@ class IperfClient(IperfHost):
                       bind=self.bind_address,
                       log=self.logfile)
         p = self.popen(cmd, shell=True)
-        self.iperf_pid = p.pid
+        self.pids.update({"iperf": p.pid})
         return p
-
-    def terminate(self):
-        super(IperfClient, self).terminate()
 
 
 class IperfReverseClient(IperfClient):
@@ -328,7 +336,7 @@ class IperfServer(IperfHost):
                                             bind=self.bind_address,
                                             log=self.logfile)
         p = self.popen(cmd, shell=True)
-        self.iperf_pid = p.pid
+        self.pids.update({"iperf": p.pid})
         return p
 
 
