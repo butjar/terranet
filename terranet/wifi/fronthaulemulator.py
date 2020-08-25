@@ -185,9 +185,10 @@ class FronthaulEmulator(object):
             config = self.__build_channel_config(channels)
             configs.append(config)
 
-        cached_configs = self.read_komondor_configs()
-        if not use_cache or configs != cached_configs.values():
-            info("Not Using cached komondor config.\n")
+        cached_config_dict = self.read_komondor_configs()
+        cached_configs = list(cached_config_dict.values())
+        if not use_cache or configs != cached_configs:
+            info("Not using cached komondor config.\n")
             self.delete_cache()
             self.write_komondor_configs(configs)
             self.komondor_configs = self.read_komondor_configs()
@@ -202,7 +203,7 @@ class FronthaulEmulator(object):
                  "Time elapsed: {} seconds.\n".format(time_elapsed))
         else:
             info("Using cached komondor config.\n")
-            self.komondor_configs = cached_configs
+            self.komondor_configs = cached_config_dict
         self.komondor_results = self.read_komondor_results()
         return self
 
