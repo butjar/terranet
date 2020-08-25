@@ -16,13 +16,14 @@ class KomondorBaseConfig(ConfigParser):
     def optionxform(self, optionstr):
         return optionstr
 
-    def filter_sections_by_value(self, key, value):
-        sections = filter(lambda x: key in self[x] and self[x][key] == value,
-                          self.sections())
+    def sections_by_value(self, key, value):
+        sections = list(filter(lambda x: key in self[x] and self[x][key] == value,
+                               self.sections()))
         return map(lambda x: self[x], sections)
 
     def nodes(self):
-        sections = filter(lambda x: not x == "System", self.sections())
+        sections = list(filter(lambda x: not x == "System",
+                               self.sections()))
 
 
 class KomondorConfig(KomondorBaseConfig):
@@ -33,17 +34,17 @@ class KomondorConfig(KomondorBaseConfig):
         return self["System"]
 
     def access_points(self):
-        return self.filter_sections_by_value("type", "0")
+        return self.sections_by_value("type", "0")
 
     def stations(self):
-        return self.filter_sections_by_value("type", "1")
+        return self.sections_by_value("type", "1")
 
     def nodes_by_wlan_code(self, wlan_code):
-        return self.filter_sections_by_value("wlan_code", wlan_code)
+        return self.sections_by_value("wlan_code", wlan_code)
 
     def get_stations_by_access_point(self, ap):
-        return filter(lambda x: x["type"] == "1",
-                      self.nodes_by_wlan_code(ap["wlan_code"]))
+        return list(filter(lambda x: x["type"] == "1",
+                           self.nodes_by_wlan_code(ap["wlan_code"])))
 
     def wifi5_links_for_access_point(self, ap):
         return [(ap.name, sta.name)

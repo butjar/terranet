@@ -6,11 +6,11 @@ from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.lib.packet import ipv6
 
-import mac_learning_pipeline
+from .mac_learning_pipeline import MacLearningPipeline
 from .ipv6_address_helper import IPv6AddressHelper
 
 
-class CustomerFlowMatching(mac_learning_pipeline.MacLearningPipeline):
+class CustomerFlowMatching(MacLearningPipeline):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
     SRC_MAC_TABLE = 100
     DST_MAC_TABLE = 101

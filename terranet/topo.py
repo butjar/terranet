@@ -1,3 +1,4 @@
+import itertools
 from ipmininet.iptopo import IPTopo
 from ipmininet.link import IPLink
 from .router_config import OpenrConfig, TerranetRouterDescription
@@ -68,17 +69,20 @@ class Terratopo(IPTopo):
         return self.isNodeType(node, 'is_distribution_node_60')
 
     def client_nodes(self, sort=True):
-        return filter(self.is_client_node, self.nodes(sort))
+        return list(filter(self.is_client_node,
+                           self.nodes(sort)))
 
     def distribution_nodes(self, sort=True):
         return (self.distribution_nodes_5_60(sort=sort) +
                 self.distribution_nodes_60(sort=sort))
 
     def distribution_nodes_5_60(self, sort=True):
-        return filter(self.is_distribution_node_5_60, self.nodes(sort))
+        return list(filter(self.is_distribution_node_5_60,
+                           self.nodes(sort)))
 
     def distribution_nodes_60(self, sort=True):
-        return filter(self.is_distribution_node_60, self.nodes(sort))
+        return list(filter(self.is_distribution_node_60,
+                           self.nodes(sort)))
 
     def terranodes(self, sort=True):
         return client_nodes(sort=sort) + distribution_nodes(sort=sort)

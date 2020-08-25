@@ -99,8 +99,8 @@ class FronthaulEmulator(object):
 
     def read_komondor_files(self, directory, cls):
         config_dict = collections.OrderedDict()
-        files = filter(lambda f: f.endswith(".cfg"),
-                       sorted(os.listdir(directory)))
+        files = list(filter(lambda f: f.endswith(".cfg"),
+                            sorted(os.listdir(directory))))
         for cfg_file in files:
             path = os.path.join(directory, cfg_file)
             cfg = cls(path)

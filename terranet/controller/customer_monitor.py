@@ -5,10 +5,10 @@ from ryu.lib import hub
 
 from influxdb import InfluxDBClient
 
-import customer_flow_matching
+from .customer_flow_matching import CustomerFlowMatching
 
 
-class CustomerMonitor(customer_flow_matching.CustomerFlowMatching):
+class CustomerMonitor(CustomerFlowMatching):
     """
     https://osrg.github.io/ryu-book/en/html/traffic_monitor.html
     """
