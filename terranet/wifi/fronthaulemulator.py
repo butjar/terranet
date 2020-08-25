@@ -139,10 +139,12 @@ class FronthaulEmulator(object):
             for cn in client_nodes:
                 komondor_name = cn.komondor_config.name
                 result = self.current_komondor_result[komondor_name]
-                for (intf, _) in dn.connectionsTo(cn):
+                links = self.net.linksBetween(dn, cn)
+                for link in links:
                     bw = int(result.getint("throughput") / 1000000)
                     delay = "{}ms".format(int(result.getfloat("delay")))
-                    intf.config(bw=bw, delay=delay, use_tbf=True)
+                    link.intf1.config(bw=bw, delay=delay, use_tbf=True)
+                    link.intf2.config(bw=bw, delay=delay, use_tbf=True)
 
     def wifi_config(self):
         config = KomondorConfig()
