@@ -204,6 +204,7 @@ class FronthaulEmulator(object):
             info("Using cached komondor config.\n")
             self.komondor_configs = cached_configs
         self.komondor_results = self.read_komondor_results()
+        return self
 
     def __build_channel_config(self, channels):
         config_dict = collections.OrderedDict()

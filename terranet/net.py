@@ -41,8 +41,11 @@ class Terranet(IPNet):
         super(Terranet, self).build()
         for node in self.wifi_nodes():
             node.register_fronthaulemulator(self.fronthaulemulator)
-        self.fronthaulemulator.build_komondor()
-        self.fronthaulemulator.apply_wifi_config()
+        if not self.fronthaulemulator.build_komondor():
+            self.fronthaulemulator = None
+
+        if self.fronthaulemulator:
+            self.fronthaulemulator.apply_wifi_config()
 
     def start(self):
         super(Terranet, self).start()
