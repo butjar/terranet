@@ -217,7 +217,22 @@ class IperfHost(IPHost):
         else:
             self.logfile = "/tmp/iperf_{}.log".format(self.name)
         self.iperf_pid = None
+        self.bind_address = None
+        self.autostart = autostart
+        self.autostart_params = autostart_params
 
+    def run(self,
+            bin="iperf3",
+            iperf_args="",
+            bind_address=None,
+            *args, **kwargs):
+
+        iface = self.intfList()[0]
+        if not bind_address:
+            self.bind_address = iface.ip6
+
+        # Implement iperf command in subclass
+        pass
     def terminate(self):
         if self.iperf_pid:
             try:
@@ -232,7 +247,10 @@ class IperfClient(IperfHost):
     def __init__(self,
                  name,
                  host=None,
+                 netstat_log=None,
                  *args, **kwargs):
+        self.host = host
+        self.netstat_log = netstat_log
         super(IperfClient, self).__init__(name, *args, **kwargs)
 
     @property
@@ -246,20 +264,24 @@ class IperfClient(IperfHost):
         else:
             self._host = host
 
-    def run_iperf_client(self,
-                         bin="iperf3",
-                         args="-6 -R -t 0 -i 10",
-                         bind_address=None):
+    def run(self,
+            bin="iperf3",
+            iperf_args="-6 -t0 -i10 -u -b0 -l1400 -Z",
+            *args, **kwargs):
+        super(IperfClient, self).run(bin=bin,
+                                     iperf_args=iperf_args,
+                                     *args, **kwargs)
 
         if not self.host:
             raise ValueError("""Host attribute must be set before running
                                 iperf client.""")
-        if not bind_address:
-            bind_address = self.intfList()[0].ip6
         # --logfile option requires iperf3 >= 3.1
         cmd = """until ping6 -c1 {host} >/dev/null 2>&1; do :; done;
-                 {bin} {args} -c {host} -B {bind} --logfile {log}""".format(
-                      bin=bin, args=args, host=self.host, bind=bind_address,
+                 {bin} {iperf_args} -c {host} -B {bind} --logfile {log}""".format(
+                      bin=bin,
+                      iperf_args=iperf_args,
+                      host=self.host,
+                      bind=self.bind_address,
                       log=self.logfile)
         p = self.popen(cmd, shell=True)
         self.iperf_pid = p.pid
@@ -272,26 +294,39 @@ class IperfClient(IperfHost):
 class IperfReverseClient(IperfClient):
     def __init__(self,
                  name,
-                 host=None,
                  *args, **kwargs):
-        super(IperfReverseClient, self).__init__(name, host=host, *args, **kwargs)
+        super(IperfReverseClient, self).__init__(name,
+                                                 *args, **kwargs)
+
+    def run(self,
+            bin="iperf3",
+            iperf_args="-6 -R -t0 -i10 -u -b0 -l1400 -Z",
+            *args, **kwargs):
+        super(IperfReverseClient, self).run(bin=bin,
+                                            iperf_args=iperf_args,
+                                            *args, **kwargs)
 
 
 class IperfServer(IperfHost):
     def __init__(self, name, *args, **kwargs):
         super(IperfServer, self).__init__(name, *args, **kwargs)
 
-    def run_iperf_server(self,
-                         bin="iperf3",
-                         args="",
-                         bind_address=None):
-        if not bind_address:
-            bind_address = self.intfList()[0].ip6
+    def run(self,
+            bin="iperf3",
+            iperf_args="-s",
+            *args, **kwargs):
+        super(IperfServer, self).run(bin=bin,
+                                     iperf_args=iperf_args,
+                                     *args, **kwargs)
+
         # --logfile option requires iperf3 >= 3.1
-        cmd = """while true; do
-                 {bin} -s {args} -B {bind} --logfile {log};
-                 done""".format(bin=bin, args=args, bind=bind_address,
-                                log=self.logfile)
+        cmd = """{bin}
+                 {iperf_args}
+                 -B {bind}
+                 --logfile {log};""".format(bin=bin,
+                                            iperf_args=iperf_args,
+                                            bind=self.bind_address,
+                                            log=self.logfile)
         p = self.popen(cmd, shell=True)
         self.iperf_pid = p.pid
         return p
