@@ -205,7 +205,6 @@ class Gateway(OVSBridge):
         super(Gateway, self).__init__(name, **params)
 
 
-        if "logfile" in params:
 class IperfHost(IPHost):
     def __init__(self,
                  name,
@@ -213,6 +212,7 @@ class IperfHost(IPHost):
                  autostart_params=None,
                  *args, **kwargs):
         super(IperfHost, self).__init__(name, *args, **kwargs)
+        if "logfile" in kwargs:
             self.logfile = params["logfile"]
         else:
             self.logfile = "/tmp/iperf_{}.log".format(self.name)
@@ -286,6 +286,18 @@ class IperfClient(IperfHost):
         if not self.host:
             raise ValueError("""Host attribute must be set before running
                                 iperf client.""")
+
+        if not self.netstat_log:
+            self.netstat_log = "/tmp/{}_{}_netstat.log".format(iface.name,
+                                                               iface.ip6)
+        netstat_cmd = """(while :; do
+        cat /proc/net/dev | grep {intf} > {logfile} 2>&1;
+        sleep {interval}; done) &""".format(intf=iface.name,
+                                            logfile=self.netstat_log,
+                                            interval=2)
+        p_netstat = self.popen(netstat_cmd, shell=True)
+        self.pids.update({"netstat_logger": p_netstat.pid})
+
         # --logfile option requires iperf3 >= 3.1
         cmd = """until ping6 -c1 {host} >/dev/null 2>&1; do :; done;
                  {bin} {iperf_args} -c {host} -B {bind} --logfile {log}""".format(
