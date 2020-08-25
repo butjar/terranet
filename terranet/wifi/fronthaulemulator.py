@@ -171,6 +171,10 @@ class FronthaulEmulator(object):
         configs = []
         access_points = self.net.access_points()
 
+        # No simulation needed
+        if not access_points:
+            return None
+
         for ap in access_points:
             self.adjust_station_wifi_config(ap)
 
