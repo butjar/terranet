@@ -44,11 +44,11 @@ class Terratopo(IPTopo):
         return self.addSwitch(name, cls=Gateway, **opts)
 
     def add_iperf_client(self, name, server_name=None, **opts):
-        return self.addHost(name, cls=IperfDownloadClient,
                             server_name=server_name, **opts)
+        return self.addHost(name, cls=IperfReverseClient,
 
     def add_iperf_server(self, name, **opts):
-        return self.addHost(name, cls=IperfDownloadServer, **opts)
+        return self.addHost(name, cls=IperfServer, **opts)
 
     def add_ip_link(self, node1, node2, *args, **kwargs):
         return self.addLink(node1, node2, cls=TCLink)
