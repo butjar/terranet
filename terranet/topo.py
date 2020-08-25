@@ -1,6 +1,6 @@
 import itertools
+from mininet.link import TCLink
 from ipmininet.iptopo import IPTopo
-from ipmininet.link import IPLink
 from .router_config import OpenrConfig, TerranetRouterDescription
 
 from .node import (ClientNode, DistributionNode60, DistributionNode5_60,
@@ -51,7 +51,7 @@ class Terratopo(IPTopo):
         return self.addHost(name, cls=IperfDownloadServer, **opts)
 
     def add_ip_link(self, node1, node2, *args, **kwargs):
-        return self.addLink(node1, node2, cls=IPLink)
+        return self.addLink(node1, node2, cls=TCLink)
 
     def add_wifi_link(self, node1, node2, *args, **kwargs):
         return self.addLink(node1, node2, cls=WifiLink)
