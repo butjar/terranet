@@ -4,7 +4,7 @@ from ipmininet.link import IPLink
 from .router_config import OpenrConfig, TerranetRouterDescription
 
 from .node import (ClientNode, DistributionNode60, DistributionNode5_60,
-                   Gateway, IperfDownloadClient, IperfDownloadServer)
+                   Gateway, IperfReverseClient, IperfServer)
 from .link import WifiLink, TerragraphLink
 from .wifi.komondor_config import KomondorSystemConfig
 
