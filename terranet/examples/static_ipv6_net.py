@@ -48,7 +48,7 @@ class ManagedBandTopo(Terratopo):
                                      coordinates={"x": 0, "y": 20, "z": 0})
         self.add_wifi_link(dn_a, cn_a1)
 
-        cpe_a1 = self.add_iperf_client("cpe_a1", server_name="server_a1")
+        cpe_a1 = self.add_iperf_reverse_client("cpe_a1", host="server_a1")
         lcna1cpea1 = self.addLink(cn_a1, cpe_a1)
 
         lcna1cpea1[cn_a1].addParams(ip=("10.128.0.1/16",
@@ -67,7 +67,7 @@ class ManagedBandTopo(Terratopo):
                                      coordinates={"x": 20, "y": 20, "z": 0})
         self.add_wifi_link(dn_b, cn_b1)
 
-        cpe_b1 = self.add_iperf_client("cpe_b1", server_name="server_b1")
+        cpe_b1 = self.add_iperf_reverse_client("cpe_b1", host="server_b1")
         lcnb1cpeb1 = self.addLink(cn_b1, cpe_b1)
         lcnb1cpeb1[cn_b1].addParams(ip=("10.129.0.1/16",
                                         "fd00:0:0:8100::1/64"))
@@ -78,7 +78,7 @@ class ManagedBandTopo(Terratopo):
                                      coordinates={"x": 30, "y": 20, "z": 0})
         self.add_wifi_link(dn_b, cn_b2)
 
-        cpe_b2 = self.add_iperf_client("cpe_b2", server_name="server_b2")
+        cpe_b2 = self.add_iperf_reverse_client("cpe_b2", host="server_b2")
         lcnb2cpeb2 = self.addLink(cn_b2, cpe_b2)
         lcnb2cpeb2[cn_b2].addParams(ip=("10.129.0.2/16",
                                         "fd00:0:0:8101::1/64"))

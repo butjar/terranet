@@ -44,7 +44,7 @@ class SingleChannelTopo(Terratopo):
                                      coordinates={"x": 0, "y": 20, "z": 0})
         self.add_wifi_link(dn_a, cn_a1)
 
-        cpe_a1 = self.add_iperf_client("cpe_a1", server_name="server_a1")
+        cpe_a1 = self.add_iperf_reverse_client("cpe_a1", host="server_a1")
         self.addLink(cn_a1, cpe_a1)
 
         # Segment B
@@ -58,14 +58,14 @@ class SingleChannelTopo(Terratopo):
                                      coordinates={"x": 20, "y": 20, "z": 0})
         self.add_wifi_link(dn_b, cn_b1)
 
-        cpe_b1 = self.add_iperf_client("cpe_b1", server_name="server_b1")
+        cpe_b1 = self.add_iperf_reverse_client("cpe_b1", host="server_b1")
         self.addLink(cn_b1, cpe_b1)
 
         cn_b2 = self.add_client_node("cn_b2",
                                      coordinates={"x": 30, "y": 20, "z": 0})
         self.add_wifi_link(dn_b, cn_b2)
 
-        cpe_b2 = self.add_iperf_client("cpe_b2", server_name="server_b2")
+        cpe_b2 = self.add_iperf_reverse_client("cpe_b2", host="server_b2")
         self.addLink(cn_b2, cpe_b2)
 
         # Add WiFi 60GHz Links between DN_A and DN_B

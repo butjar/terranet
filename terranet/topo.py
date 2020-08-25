@@ -43,9 +43,9 @@ class Terratopo(IPTopo):
     def add_gateway(self, name, **opts):
         return self.addSwitch(name, cls=Gateway, **opts)
 
-    def add_iperf_client(self, name, server_name=None, **opts):
-                            server_name=server_name, **opts)
+    def add_iperf_reverse_client(self, name, host=None, **opts):
         return self.addHost(name, cls=IperfReverseClient,
+                            host=host, **opts)
 
     def add_iperf_server(self, name, **opts):
         return self.addHost(name, cls=IperfServer, **opts)
