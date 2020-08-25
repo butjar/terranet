@@ -4,7 +4,7 @@ from threading import Thread, Event
 import subprocess
 
 from mininet.log import info, warn
-from mininet.node import Host, OVSBridge
+from mininet.node import OVSBridge
 
 from ipmininet.host import IPHost
 from ipmininet.router import Router, ProcessHelper
