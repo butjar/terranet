@@ -287,25 +287,28 @@ class IperfClient(IperfHost):
             raise ValueError("""Host attribute must be set before running
                                 iperf client.""")
 
+        iface = self.intfList()[0]
         if not self.netstat_log:
             self.netstat_log = "/tmp/{}_{}_netstat.log".format(iface.name,
                                                                iface.ip6)
-        netstat_cmd = """(while :; do
-        cat /proc/net/dev | grep {intf} > {logfile} 2>&1;
-        sleep {interval}; done) &""".format(intf=iface.name,
-                                            logfile=self.netstat_log,
-                                            interval=2)
+        netstat_cmd = ("(while :; do "
+                       "cat /proc/net/dev | grep {intf} > {logfile} 2>&1; "
+                       "sleep {interval}; done) &").format(intf=iface.name,
+                                                           logfile=self.netstat_log,
+                                                           interval=2)
         p_netstat = self.popen(netstat_cmd, shell=True)
         self.pids.update({"netstat_logger": p_netstat.pid})
 
         # --logfile option requires iperf3 >= 3.1
-        cmd = """until ping6 -c1 {host} >/dev/null 2>&1; do :; done;
-                 {bin} {iperf_args} -c {host} -B {bind} --logfile {log}""".format(
-                      bin=bin,
-                      iperf_args=iperf_args,
-                      host=self.host,
-                      bind=self.bind_address,
-                      log=self.logfile)
+        cmd = ("until ping6 -c1 {host} >/dev/null 2>&1; do :; done; "
+               "{bin} {iperf_args} "
+               "-c {host} "
+               "-B {bind} "
+               "--logfile {log}").format(bin=bin,
+                                         iperf_args=iperf_args,
+                                         host=self.host,
+                                         bind=self.bind_address,
+                                         log=self.logfile)
         p = self.popen(cmd, shell=True)
         self.pids.update({"iperf": p.pid})
         return p
@@ -340,13 +343,12 @@ class IperfServer(IperfHost):
                                      *args, **kwargs)
 
         # --logfile option requires iperf3 >= 3.1
-        cmd = """{bin}
-                 {iperf_args}
-                 -B {bind}
-                 --logfile {log};""".format(bin=bin,
-                                            iperf_args=iperf_args,
-                                            bind=self.bind_address,
-                                            log=self.logfile)
+        cmd = ("{bin} {iperf_args} "
+               "-B {bind} "
+               "--logfile {log}").format(bin=bin,
+                                         iperf_args=iperf_args,
+                                         bind=self.bind_address,
+                                         log=self.logfile)
         p = self.popen(cmd, shell=True)
         self.pids.update({"iperf": p.pid})
         return p
