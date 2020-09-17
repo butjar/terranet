@@ -10,6 +10,10 @@ sudo systemctl restart influxdb.service
 sudo systemctl restart influxd.service
 sudo systemctl restart grafana-server.service
 SCRIPT
+
+$vm_cpus = ENV["VM_CPUS"] || 2
+$vm_memory = ENV["VM_MEMORY"] || 4096
+
 Vagrant.configure("2") do |config|
   config.vm.define "terranet-dev" do |t|
     t.vm.box = "butja/terranet-base"
@@ -18,6 +22,10 @@ Vagrant.configure("2") do |config|
     t.vm.network "forwarded_port", guest: 3000, host: 3000
     # Forward influxdb port
     t.vm.network "forwarded_port", guest: 8086, host: 8086
+    t.vm.provider "virtualbox" do |v|
+        v.cpus = $vm_cpus
+        v.memory = $vm_memory
+    end
     t.vm.synced_folder "etc/collectd",
                        "/etc/collectd"
     t.vm.synced_folder "var/lib/collectd/python",
