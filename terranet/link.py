@@ -1,5 +1,5 @@
-from mininet.link import TCIntf, TCLink
-from ipmininet.link import IPIntf
+from mininet.link import TCLink
+from ipmininet.link import IPIntf, TCIntf
 
 
 class TerraIntf(TCIntf):

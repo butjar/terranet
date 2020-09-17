@@ -1,5 +1,5 @@
 import itertools
-from mininet.link import TCLink
+from ipmininet.link import IPLink
 from ipmininet.iptopo import IPTopo
 from .router_config import OpenrConfig, TerranetRouterDescription
 
@@ -51,7 +51,7 @@ class Terratopo(IPTopo):
         return self.addHost(name, cls=IperfServer, **opts)
 
     def add_ip_link(self, node1, node2, *args, **kwargs):
-        return self.addLink(node1, node2, cls=TCLink)
+        return self.addLink(node1, node2, cls=IPLink)
 
     def add_wifi_link(self, node1, node2, *args, **kwargs):
         return self.addLink(node1, node2, cls=WifiLink)

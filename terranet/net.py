@@ -1,8 +1,8 @@
 import time
 
 from mininet.node import OVSSwitch
-from mininet.link import TCIntf
 from ipmininet.ipnet import IPNet
+from ipmininet.ipnet import IPLink, IPIntf
 from .link import TerraLink, TerraIntf
 from .node import (Terranode, ClientNode, DistributionNode60,
                    DistributionNode5_60, IperfHost, IperfClient,
@@ -21,8 +21,8 @@ class Terranet(IPNet):
                  komondor_config_dir=None,
                  router=DistributionNode60,
                  config=OpenrConfig,
-                 link=TerraLink,
-                 intf=TerraIntf,
+                 link=IPLink,
+                 intf=IPIntf,
                  switch=OVSSwitch,
                  *args, **kwargs):
         if not fronthaulemulator:
