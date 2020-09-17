@@ -14,7 +14,7 @@ class CustomerMonitor(CustomerFlowMatching):
     """
 
     INTERVAL = 10
-    DB_NAME = "customerflows"
+    DB_NAME = "switchstats"
 
     def __init__(self, *args, **kwargs):
         self.datapaths = {}
@@ -41,7 +41,7 @@ class CustomerMonitor(CustomerFlowMatching):
                                                                      interval)
         self.influxclient.create_continuous_query('throughputs',
                                                   throughputs_select,
-                                                  database='customerflows')
+                                                  database=dbname)
 
         # Create continous query for total net throughput
         net_throughput_select = '''SELECT sum("value")
@@ -51,7 +51,7 @@ class CustomerMonitor(CustomerFlowMatching):
                                    GROUP BY time({}s)'''.format(interval)
         self.influxclient.create_continuous_query('net_throughput',
                                                   net_throughput_select,
-                                                  database='customerflows')
+                                                  database=dbname)
 
         net_throughput_squared_select = '''
             SELECT pow(last("value"), 2)
@@ -61,7 +61,7 @@ class CustomerMonitor(CustomerFlowMatching):
             GROUP BY time({}s)'''.format(interval)
         self.influxclient.create_continuous_query(
             'net_throughput_squared', net_throughput_squared_select,
-            database='customerflows')
+            database=dbname)
 
         # Create continous query for customer count
         customer_count_select = '''SELECT count("last")
@@ -73,7 +73,7 @@ class CustomerMonitor(CustomerFlowMatching):
                                    GROUP BY time({}s)'''.format(interval)
         self.influxclient.create_continuous_query('customer_count',
                                                   customer_count_select,
-                                                  database='customerflows')
+                                                  database=dbname)
 
         sum_squared_throughputs_select = '''
             SELECT sum("squares")
@@ -86,7 +86,7 @@ class CustomerMonitor(CustomerFlowMatching):
             GROUP BY time({}s)'''.format(interval)
         self.influxclient.create_continuous_query(
             'sum_squared_throughputs', sum_squared_throughputs_select,
-            database='customerflows')
+            database=dbname)
 
         # Create continous query for Jane's fairness index
         fairness_index_select = '''SELECT last("fairness_index")
@@ -100,7 +100,7 @@ class CustomerMonitor(CustomerFlowMatching):
                                    GROUP BY time({}s)'''.format(interval)
         self.influxclient.create_continuous_query('fairness_index',
                                                   fairness_index_select,
-                                                  database='customerflows')
+                                                  database=dbname)
 
     @set_ev_cls(ofp_event.EventOFPStateChange,
                 [MAIN_DISPATCHER, DEAD_DISPATCHER])
