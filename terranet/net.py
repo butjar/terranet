@@ -1,5 +1,3 @@
-import time
-
 from mininet.node import OVSSwitch
 from ipmininet.ipnet import IPNet
 from ipmininet.ipnet import IPLink, IPIntf
