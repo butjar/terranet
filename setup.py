@@ -16,9 +16,7 @@ setup(
     keywords="hello world example examples",
     install_requires=[
         "configparser",
-        "jinja2",
         "whichcraft",
-        "future",
         "flask",
         "netns",
         "influxdb"

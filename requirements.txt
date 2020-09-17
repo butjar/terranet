@@ -1,7 +1,5 @@
 configparser
-jinja2
 whichcraft
-future
 flask
 netns
 influxdb
