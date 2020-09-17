@@ -16,6 +16,8 @@ Vagrant.configure("2") do |config|
     t.vm.provider :virtualbox
     # Forward grafana interface
     t.vm.network "forwarded_port", guest: 3000, host: 3000
+    # Forward influxdb port
+    t.vm.network "forwarded_port", guest: 8086, host: 8086
     t.vm.synced_folder "etc/collectd",
                        "/etc/collectd"
     t.vm.synced_folder "var/lib/collectd/python",
