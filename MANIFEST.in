@@ -1,0 +1,6 @@
+exclude .gitignore
+global-exclude *.env *.box *.log
+prune var/
+prune etc/
+prune .git/
+prune .vagrant/
