@@ -7,19 +7,21 @@ with open(os.path.join(os.getcwd(), 'VERSION')) as version_file:
     version = version_file.read().strip()
 
 setup(
-    name="terranet",
+    name='terranet',
     version=version,
     packages=find_packages(),
-    author="Me",
-    author_email="me@example.com",
-    description="This is an Example Package",
-    keywords="hello world example examples",
+    author='butjar',
+    author_email='',
+    description='Terranet: mmWave Distribution Network Emulator',
+    keywords='terranet terragraph wifi wifi6 60GHz mmWave',
     install_requires=[
-        "configparser",
-        "whichcraft",
-        "flask",
-        "netns",
-        "influxdb"
+        'collectd',
+        'configparser',
+        'Flask',
+        'influxdb',
+        'netns',
+        'ryu',
+        'whichcraft',
     ],
     include_package_data=True,
     package_data={
