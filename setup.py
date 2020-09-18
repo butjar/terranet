@@ -23,6 +23,6 @@ setup(
     ],
     include_package_data=True,
     package_data={
-        'terranet': ['templates/*.j2']
+        'terranet': ['examples/.komondor/simple_terranet/**/*.cfg']
     },
 )
