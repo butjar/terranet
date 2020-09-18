@@ -139,10 +139,12 @@ class FronthaulEmulator(object):
             for cn in client_nodes:
                 komondor_name = cn.komondor_config.name
                 result = self.current_komondor_result[komondor_name]
-                for (intf, _) in dn.connectionsTo(cn):
+                links = self.net.linksBetween(dn, cn)
+                for link in links:
                     bw = int(result.getint("throughput") / 1000000)
                     delay = "{}ms".format(int(result.getfloat("delay")))
-                    intf.config(bw=bw, delay=delay, use_tbf=True)
+                    link.intf1.config(bw=bw, delay=delay, use_tbf=True)
+                    link.intf2.config(bw=bw, delay=delay, use_tbf=True)
 
     def wifi_config(self):
         config = KomondorConfig()
@@ -169,6 +171,10 @@ class FronthaulEmulator(object):
         configs = []
         access_points = self.net.access_points()
 
+        # No simulation needed
+        if not access_points:
+            return None
+
         for ap in access_points:
             self.adjust_station_wifi_config(ap)
 
@@ -179,9 +185,10 @@ class FronthaulEmulator(object):
             config = self.__build_channel_config(channels)
             configs.append(config)
 
-        cached_configs = self.read_komondor_configs()
-        if not use_cache or configs != cached_configs.values():
-            info("Not Using cached komondor config.\n")
+        cached_config_dict = self.read_komondor_configs()
+        cached_configs = list(cached_config_dict.values())
+        if not use_cache or configs != cached_configs:
+            info("Not using cached komondor config.\n")
             self.delete_cache()
             self.write_komondor_configs(configs)
             self.komondor_configs = self.read_komondor_configs()
@@ -196,8 +203,9 @@ class FronthaulEmulator(object):
                  "Time elapsed: {} seconds.\n".format(time_elapsed))
         else:
             info("Using cached komondor config.\n")
-            self.komondor_configs = cached_configs
+            self.komondor_configs = cached_config_dict
         self.komondor_results = self.read_komondor_results()
+        return self
 
     def __build_channel_config(self, channels):
         config_dict = collections.OrderedDict()
@@ -247,12 +255,10 @@ class FronthaulEmulator(object):
                      if f.endswith(".cfg")]
         pool = multiprocessing.Pool()
 
-        komondor_executable = "/home/mininet/Komondor/Code/build/komondor_main"
         komondor_args = {"time": 100,
                          "seed": 1000}
         f = partial(run_komondor_worker,
                     output_dir=self.komondor_output_dir,
-                    komondor_executable=komondor_executable,
                     komondor_args=komondor_args)
         pool.map(f, cfg_files)
 

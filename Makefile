@@ -26,16 +26,40 @@ $(machines): %: .vagrant/machines/%/$(provider)/id
 $(boxes): %.box: .vagrant/machines/%/$(provider)/id
 	VAGRANT_VAGRANTFILE=$(VAGRANTFILE_BUILD) vagrant package $* --base $$(cat .vagrant/machines/$*/$(provider)/id) --output $@
 
-# See: https://www.vagrantup.com/vagrant-cloud/boxes/create
+# See: - https://www.vagrantup.com/vagrant-cloud/boxes/create
+#      - https://www.vagrantup.com/vagrant-cloud/api
 .INTERMEDIATE: $(upload_targets)
 terranet-upload.json: version = $(shell cat VERSION)
 terranet-base-upload.json: version = $(shell cat BASEVM_VERSION)
 $(upload_targets): %-upload.json: %.box
-	curl -o $@ -v "https://vagrantcloud.com/api/v1/box/$(ATLAS_USER)/$*/version/$(version)/provider/$(provider)/upload?access_token=$(ATLAS_ACCESS_TOKEN)"
+	curl -v \
+	     -H "Content-Type: application/json" \
+		 -H "Authorization: Bearer $(ATLAS_ACCESS_TOKEN)" \
+		 -d '{"version": {"version": "$(version)"}}' \
+		 "https://app.vagrantup.com/api/v1/box/$(ATLAS_USER)/$*/versions"
+	curl -v \
+	     -H "Content-Type: application/json" \
+		 -H "Authorization: Bearer $(ATLAS_ACCESS_TOKEN)" \
+		 -d '{"provider": {"name": "$(provider)"}}' \
+		 "https://app.vagrantup.com/api/v1/box/$(ATLAS_USER)/$*/version/$(version)/providers"
+	curl -v \
+		 -o $@ \
+		 -H "Authorization: Bearer $(ATLAS_ACCESS_TOKEN)" \
+		 "https://vagrantcloud.com/api/v1/box/$(ATLAS_USER)/$*/version/$(version)/provider/$(provider)/upload"
 
 .PHONY: $(release_targets)
+release-terranet: version = $(shell cat VERSION)
+release-terranet-base: version = $(shell cat BASEVM_VERSION)
+$(release_targets): release_url = $(shell cat $< | jq -r '.upload_path')
 $(release_targets): release-%: %-upload.json
-	curl -v -XPUT --upload-file $*.box $$(cat $< | jq -r '.upload_path')
+	curl -v \
+		 -XPUT \
+		 -T $*.box \
+		 $(release_url)
+	curl -v \
+	     -XPUT \
+		 -H "Authorization: Bearer $(ATLAS_ACCESS_TOKEN)" \
+		 "https://app.vagrantup.com/api/v1/box/$(ATLAS_USER)/$*/version/$(version)/release"
 
 .PHONY: clean $(clean_targets) $(clean_box_targets) $(clean_upload_targets)
 clean: $(clean_targets)

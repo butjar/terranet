@@ -16,15 +16,13 @@ setup(
     keywords="hello world example examples",
     install_requires=[
         "configparser",
-        "jinja2",
         "whichcraft",
-        "future",
         "flask",
         "netns",
         "influxdb"
     ],
     include_package_data=True,
     package_data={
-        'terranet': ['templates/*.j2']
+        'terranet': ['examples/.komondor/simple_terranet/**/*.cfg']
     },
 )

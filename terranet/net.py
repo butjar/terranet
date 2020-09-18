@@ -1,9 +1,7 @@
-import time
-
-from mininet.link import TCLink, TCIntf
 from mininet.node import OVSSwitch
 from ipmininet.ipnet import IPNet
-from .link import Terralink
+from ipmininet.ipnet import IPLink, IPIntf
+from .link import TerraLink, TerraIntf
 from .node import (Terranode, ClientNode, DistributionNode60,
                    DistributionNode5_60, IperfHost, IperfClient,
                    IperfServer, WifiNode, WifiAccessPoint,
@@ -21,8 +19,8 @@ class Terranet(IPNet):
                  komondor_config_dir=None,
                  router=DistributionNode60,
                  config=OpenrConfig,
-                 link=Terralink,
-                 intf=TCIntf,
+                 link=IPLink,
+                 intf=IPIntf,
                  switch=OVSSwitch,
                  *args, **kwargs):
         if not fronthaulemulator:
@@ -41,8 +39,11 @@ class Terranet(IPNet):
         super(Terranet, self).build()
         for node in self.wifi_nodes():
             node.register_fronthaulemulator(self.fronthaulemulator)
-        self.fronthaulemulator.build_komondor()
-        self.fronthaulemulator.apply_wifi_config()
+        if not self.fronthaulemulator.build_komondor():
+            self.fronthaulemulator = None
+
+        if self.fronthaulemulator:
+            self.fronthaulemulator.apply_wifi_config()
 
     def start(self):
         super(Terranet, self).start()

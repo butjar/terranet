@@ -1,0 +1,36 @@
+# https://grafana.com/docs/grafana/latest/administration/provisioning/#example-data-source-config-file
+
+# config file version
+apiVersion: 1
+
+deleteDatasources:
+  - name: customerstats
+    orgId: 1
+  - name: switchstats
+    orgId: 1
+
+datasources:
+  - name: customerstats
+    type: influxdb
+    access: proxy
+    orgId: 1
+    url: http://localhost:8086
+    password:
+    user:
+    database: customerstats
+    basicAuth: false
+    isDefault: true
+    version: 1
+    editable: true
+  - name: switchstats
+    type: influxdb
+    access: proxy
+    orgId: 1
+    url: http://localhost:8086
+    password:
+    user:
+    database: switchstats
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: true

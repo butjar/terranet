@@ -3,8 +3,8 @@ import signal
 from threading import Thread, Event
 import subprocess
 
-from mininet.log import warn
-from mininet.node import Host, OVSBridge
+from mininet.log import info, warn
+from mininet.node import OVSBridge
 
 from ipmininet.host import IPHost
 from ipmininet.router import Router, ProcessHelper
@@ -205,7 +205,6 @@ class Gateway(OVSBridge):
         super(Gateway, self).__init__(name, **params)
 
 
-        if "logfile" in params:
 class IperfHost(IPHost):
     def __init__(self,
                  name,
@@ -213,18 +212,45 @@ class IperfHost(IPHost):
                  autostart_params=None,
                  *args, **kwargs):
         super(IperfHost, self).__init__(name, *args, **kwargs)
+        if "logfile" in kwargs:
             self.logfile = params["logfile"]
         else:
             self.logfile = "/tmp/iperf_{}.log".format(self.name)
-        self.iperf_pid = None
+        self.pids = {}
+        self.bind_address = None
+        self.autostart = autostart
+        self.autostart_params = autostart_params
+
+    def run(self,
+            bin="iperf3",
+            iperf_args="",
+            bind_address=None,
+            *args, **kwargs):
+
+        iface = self.intfList()[0]
+        if not bind_address:
+            self.bind_address = iface.ip6
+
+        # Kill current processes
+        self.stop()
+        # Implement iperf command in subclass
+        pass
+
+    def stop(self):
+        for process, pid in self.pids.items():
+            try:
+                os.killpg(pid, signal.SIGHUP)
+                info("Stopped process {} with PID {}.". format(process,
+                                                              pid))
+            except Exception as e:
+                warn("""Could not stop process {} with PID: {}\n
+                        {}""".format(process,
+                                     pid,
+                                     e))
+        self.pids = {}
 
     def terminate(self):
-        if self.iperf_pid:
-            try:
-                os.killpg(self.iperf_pid, signal.SIGHUP)
-            except Exception as e:
-                warn("""Could not kill iperf process with PID: {}\n
-                        {}""".format(self.iperf_pid, e))
+        self.stop()
         super(IperfHost, self).terminate()
 
 
@@ -232,7 +258,10 @@ class IperfClient(IperfHost):
     def __init__(self,
                  name,
                  host=None,
+                 netstat_log=None,
                  *args, **kwargs):
+        self.host = host
+        self.netstat_log = netstat_log
         super(IperfClient, self).__init__(name, *args, **kwargs)
 
     @property
@@ -246,54 +275,82 @@ class IperfClient(IperfHost):
         else:
             self._host = host
 
-    def run_iperf_client(self,
-                         bin="iperf3",
-                         args="-6 -R -t 0 -i 10",
-                         bind_address=None):
+    def run(self,
+            bin="iperf3",
+            iperf_args="-6 -t0 -i10 -u -b0 -l1400 -Z",
+            *args, **kwargs):
+        super(IperfClient, self).run(bin=bin,
+                                     iperf_args=iperf_args,
+                                     *args, **kwargs)
 
         if not self.host:
             raise ValueError("""Host attribute must be set before running
                                 iperf client.""")
-        if not bind_address:
-            bind_address = self.intfList()[0].ip6
-        # --logfile option requires iperf3 >= 3.1
-        cmd = """until ping6 -c1 {host} >/dev/null 2>&1; do :; done;
-                 {bin} {args} -c {host} -B {bind} --logfile {log}""".format(
-                      bin=bin, args=args, host=self.host, bind=bind_address,
-                      log=self.logfile)
-        p = self.popen(cmd, shell=True)
-        self.iperf_pid = p.pid
-        return p
 
-    def terminate(self):
-        super(IperfClient, self).terminate()
+        iface = self.intfList()[0]
+        if not self.netstat_log:
+            self.netstat_log = "/tmp/{}_{}_netstat.log".format(iface.name,
+                                                               iface.ip6)
+        netstat_cmd = ("(while :; do "
+                       "cat /proc/net/dev | grep {intf} > {logfile} 2>&1; "
+                       "sleep {interval}; done) &").format(intf=iface.name,
+                                                           logfile=self.netstat_log,
+                                                           interval=2)
+        p_netstat = self.popen(netstat_cmd, shell=True)
+        self.pids.update({"netstat_logger": p_netstat.pid})
+
+        # --logfile option requires iperf3 >= 3.1
+        cmd = ("until ping6 -c1 {host} >/dev/null 2>&1; do :; done; "
+               "{bin} {iperf_args} "
+               "-c {host} "
+               "-B {bind} "
+               "--logfile {log}").format(bin=bin,
+                                         iperf_args=iperf_args,
+                                         host=self.host,
+                                         bind=self.bind_address,
+                                         log=self.logfile)
+        p = self.popen(cmd, shell=True)
+        self.pids.update({"iperf": p.pid})
+        return p
 
 
 class IperfReverseClient(IperfClient):
     def __init__(self,
                  name,
-                 host=None,
                  *args, **kwargs):
-        super(IperfReverseClient, self).__init__(name, host=host, *args, **kwargs)
+        super(IperfReverseClient, self).__init__(name,
+                                                 *args, **kwargs)
+
+    def run(self,
+            bin="iperf3",
+            iperf_args="-6 -R -t0 -i10 -u -b0 -l1400 -Z",
+            *args, **kwargs):
+        super(IperfReverseClient, self).run(bin=bin,
+                                            iperf_args=iperf_args,
+                                            *args, **kwargs)
 
 
 class IperfServer(IperfHost):
     def __init__(self, name, *args, **kwargs):
         super(IperfServer, self).__init__(name, *args, **kwargs)
 
-    def run_iperf_server(self,
-                         bin="iperf3",
-                         args="",
-                         bind_address=None):
-        if not bind_address:
-            bind_address = self.intfList()[0].ip6
+    def run(self,
+            bin="iperf3",
+            iperf_args="-s",
+            *args, **kwargs):
+        super(IperfServer, self).run(bin=bin,
+                                     iperf_args=iperf_args,
+                                     *args, **kwargs)
+
         # --logfile option requires iperf3 >= 3.1
-        cmd = """while true; do
-                 {bin} -s {args} -B {bind} --logfile {log};
-                 done""".format(bin=bin, args=args, bind=bind_address,
-                                log=self.logfile)
+        cmd = ("{bin} {iperf_args} "
+               "-B {bind} "
+               "--logfile {log}").format(bin=bin,
+                                         iperf_args=iperf_args,
+                                         bind=self.bind_address,
+                                         log=self.logfile)
         p = self.popen(cmd, shell=True)
-        self.iperf_pid = p.pid
+        self.pids.update({"iperf": p.pid})
         return p
 
 
