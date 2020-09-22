@@ -1,6 +1,12 @@
 # vi: syntax=ruby
 # vi: filetype=ruby
 
+# Variables
+$terranet_base_version = File.read('BASEVM_VERSION').strip
+$terranet_version = File.read('VERSION').strip
+$vm_cpus = ENV['VM_CPUS'] || 1
+$vm_memory = ENV['VM_MEMORY'] || 512
+
 # terranet-base provisioning script
 $base_provisioning = <<~SCRIPT
   pushd /usr/local/src
@@ -51,26 +57,23 @@ $base_provisioning = <<~SCRIPT
   systemctl enable collectd --now
 SCRIPT
 
+# terranet provisioning script
+$provisioning = <<~SCRIPT
+  influx -execute 'CREATE DATABASE customerstats'
+  influx -execute 'CREATE DATABASE switchstats'
 
-sudo systemctl unmask collectd.service
-sudo systemctl enable collectd --now
+  cp -rf /tmp/etc/* /etc
+  cp -rf /tmp/var/* /var
 
-# Install ryu
-sudo apt-get update && sudo apt-get install -y python3-ryu
+  systemctl restart collectd.service
+  systemctl restart influxdb.service
+  systemctl restart influxd.service
+  systemctl restart grafana-server.service
 
+  pip3 install -U --force-reinstall 'terranet==#{$terranet_version}'
 SCRIPT
 
 Vagrant.configure('2') do |config|
-  config.vm.define "terranet", primary: true do |t|
-    t.vm.box = "butja/terranet-base"
-    t.vm.provider :virtualbox
-    t.vm.synced_folder ".", "/vagrant", disabled: true
-    # Forward grafana interface
-    t.vm.network "forwarded_port", guest: 3000, host: 3000
-    t.vm.provision "shell", inline: ""
-    t.ssh.insert_key = false
-  end
-
   config.vm.define 'terranet-base', autostart: false do |t|
     t.vm.box = 'ubuntu/bionic64'
     t.vm.provider :virtualbox
@@ -79,14 +82,27 @@ Vagrant.configure('2') do |config|
     t.disksize.size = '20GB'
     t.vm.provider 'virtualbox' do |v|
         if File.exist?('.vagrant/machines/terranet-base/virtualbox/action_provision')
-            v.memory = 512
+            v.cpus = $vm_cpus
+            v.memory = $vm_memory
         else
-            v.memory = 5120
+            $vm_cpus < 2 ? v.cpus = 2 : v.cpus = $vm_cpus
+            $vm_memory < 5120 ? v.memory = 5120 : v.memory = $vm_memory
         end
     end
-    # Forward grafana interface
-    t.vm.network "forwarded_port", guest: 3000, host: 3030
     t.vm.provision 'shell', inline: $base_provisioning
+    t.ssh.insert_key = false
+  end
+
+  config.vm.define 'terranet', primary: true do |t|
+    t.vm.box = 'butja/terranet-base'
+    t.vm.box_version = $terranet_base_version
+    t.vm.provider :virtualbox
+    t.vm.synced_folder '.', '/vagrant', disabled: true
+    t.vm.provision 'file', source: 'etc',
+                           destination: '/tmp/etc'
+    t.vm.provision 'file', source: 'var',
+                           destination: '/tmp/var'
+    t.vm.provision 'shell', inline: $provisioning
     t.ssh.insert_key = false
   end
 end
