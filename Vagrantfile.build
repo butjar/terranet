@@ -13,7 +13,7 @@ $base_provisioning = <<~SCRIPT
   touch /etc/rc.local
 
   ## Install (ip)mininet VM
-  curl -sSL https://raw.githubusercontent.com/cnp3/ipmininet/master/ipmininet/install/build_vm.sh | bash
+  curl -sSL https://raw.githubusercontent.com/butjar/ipmininet/Fix-build-vm-ipmininet-checkout/ipmininet/install/build_vm.sh | bash
   rm -rf /etc/rc.local
   dpkg-reconfigure -fnoninteractive openssh-server
 
