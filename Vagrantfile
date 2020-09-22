@@ -1,9 +1,14 @@
 # vi: syntax=ruby
 # vi: filetype=ruby
 
+# Variables
+$vm_cpus = ENV['VM_CPUS'] || 2
+$vm_memory = ENV['VM_MEMORY'] || 4096
+
+# terranet-dev provisioning script
 $dev_provisioning = <<~SCRIPT
-  influx -execute "CREATE DATABASE customerstats"
-  influx -execute "CREATE DATABASE switchstats"
+  influx -execute 'CREATE DATABASE customerstats'
+  influx -execute 'CREATE DATABASE switchstats'
 
   pip3 install -e /vagrant
 
@@ -13,17 +18,14 @@ $dev_provisioning = <<~SCRIPT
   systemctl restart grafana-server.service
 SCRIPT
 
-$vm_cpus = ENV['VM_CPUS'] || 2
-$vm_memory = ENV['VM_MEMORY'] || 4096
-
 Vagrant.configure('2') do |config|
-  config.vm.define 'terranet', primary: true do |t|
-    t.vm.box = 'butja/terranet'
-    t.vm.provider :virtualbox
-    t.vm.provider 'virtualbox' do |v|
+  config.vm.provider 'virtualbox' do |v|
         v.cpus = $vm_cpus
         v.memory = $vm_memory
-    end
+  end
+
+  config.vm.define 'terranet', primary: true do |t|
+    t.vm.box = 'butja/terranet'
     t.vm.synced_folder '.', '/vagrant', disabled: true
     # Forward grafana interface
     t.vm.network 'forwarded_port', guest: 3000, host: 3000
@@ -33,11 +35,6 @@ Vagrant.configure('2') do |config|
 
   config.vm.define 'terranet-dev', autostart: false  do |t|
     t.vm.box = 'butja/terranet-base'
-    t.vm.provider :virtualbox
-    t.vm.provider 'virtualbox' do |v|
-        v.cpus = $vm_cpus
-        v.memory = $vm_memory
-    end
     # Forward grafana interface
     t.vm.network 'forwarded_port', guest: 3000, host: 3030
     # Forward influxdb port

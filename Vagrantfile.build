@@ -74,21 +74,22 @@ $provisioning = <<~SCRIPT
 SCRIPT
 
 Vagrant.configure('2') do |config|
+  config.vm.provider 'virtualbox' do |v|
+        v.cpus = $vm_cpus
+        v.memory = $vm_memory
+  end
+
   config.vm.define 'terranet-base', autostart: false do |t|
     t.vm.box = 'ubuntu/bionic64'
-    t.vm.provider :virtualbox
-    t.vm.synced_folder '.', '/vagrant', disabled: true
-    t.vagrant.plugins = ['vagrant-disksize']
-    t.disksize.size = '20GB'
     t.vm.provider 'virtualbox' do |v|
-        if File.exist?('.vagrant/machines/terranet-base/virtualbox/action_provision')
-            v.cpus = $vm_cpus
-            v.memory = $vm_memory
-        else
+        unless File.exist?('.vagrant/machines/terranet-base/virtualbox/action_provision')
             $vm_cpus < 2 ? v.cpus = 2 : v.cpus = $vm_cpus
             $vm_memory < 5120 ? v.memory = 5120 : v.memory = $vm_memory
         end
     end
+    t.vm.synced_folder '.', '/vagrant', disabled: true
+    t.vagrant.plugins = ['vagrant-disksize']
+    t.disksize.size = '20GB'
     t.vm.provision 'shell', inline: $base_provisioning
     t.ssh.insert_key = false
   end
@@ -96,7 +97,6 @@ Vagrant.configure('2') do |config|
   config.vm.define 'terranet', primary: true do |t|
     t.vm.box = 'butja/terranet-base'
     t.vm.box_version = $terranet_base_version
-    t.vm.provider :virtualbox
     t.vm.synced_folder '.', '/vagrant', disabled: true
     t.vm.provision 'file', source: 'etc',
                            destination: '/tmp/etc'
