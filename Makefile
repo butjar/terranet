@@ -3,6 +3,11 @@ SHELL := /bin/bash
 VERSION := $(shell cat VERSION)
 _VERSION := $(subst .,_,$(VERSION))
 
+# Python packaging variables
+pypi_package_name := terranet
+pypi_release_target := pypi-release-$(pypi_package_name)
+pypi_clean_packaging_targets := pypi-clean-dist pypi-clean-build
+
 # Vagrant variables
 ## ENV
 BASEVM_VERSION := $(shell cat BASEVM_VERSION)
@@ -20,7 +25,31 @@ vagrant_clean_machine_targets := vagrant-clean-terranet vagrant-clean-terranet-b
 vagrant_clean_box_targets := vagrant-clean-terranet-boxes vagrant-clean-terranet-base-boxes
 vagrant_clean_upload_targets := vagrant-clean-terranet-uploads vagrant-clean-terranet-base-uploads
 
+# General targets
+.PHONY: clean-all
+clean-all: pypi-clean-all vagrant-clean-all
 
+.PHONY: release-terranet release-terranet-base
+release-terranet: release-%: pypi-release-% vagrant-release-%
+release-terranet-base: release-%: vagrant-release-%
+
+# Python package targets
+.PHONY: $(pypi_release_target)
+$(pypi_release_target): pypi-release-%: dist/%-$(VERSION)-py3-none-any.whl dist/%-$(VERSION).tar.gz
+	python3 -m twine upload dist/$*-$(VERSION)* --config-file .pypirc
+
+dist/$(pypi_package_name)-$(VERSION)-py3-none-any.whl: VERSION
+	python3 setup.py bdist_wheel
+
+dist/$(pypi_package_name)-$(VERSION).tar.gz: VERSION
+	python3 setup.py sdist
+
+.PHONY: pypi-clean-all $(pypi_clean_packaging_targets)
+pypi-clean-all: $(pypi_clean_packaging_targets)
+pypi-clean-dist:
+	rm -rf dist/
+pypi-clean-build:
+	rm -rf build/
 
 # Vagrant targets
 ## Vagrant machine provisioning
