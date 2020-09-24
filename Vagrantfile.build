@@ -89,7 +89,7 @@ Vagrant.configure('2') do |config|
     end
     t.vm.synced_folder '.', '/vagrant', disabled: true
     t.vagrant.plugins = ['vagrant-disksize']
-    t.disksize.size = '20GB'
+    t.disksize.size = '15GB'
     t.vm.provision 'shell', inline: $base_provisioning
     t.ssh.insert_key = false
   end
