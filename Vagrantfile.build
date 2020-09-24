@@ -79,7 +79,7 @@ Vagrant.configure('2') do |config|
         v.memory = $vm_memory
   end
 
-  config.vm.define 'terranet-base', autostart: false do |t|
+  config.vm.define 'terranet-base-build', autostart: false do |t|
     t.vm.box = 'ubuntu/bionic64'
     t.vm.provider 'virtualbox' do |v|
         unless File.exist?('.vagrant/machines/terranet-base/virtualbox/action_provision')
@@ -94,7 +94,7 @@ Vagrant.configure('2') do |config|
     t.ssh.insert_key = false
   end
 
-  config.vm.define 'terranet', primary: true do |t|
+  config.vm.define 'terranet-build', primary: true do |t|
     t.vm.box = 'butja/terranet-base'
     t.vm.box_version = $terranet_base_version
     t.vm.synced_folder '.', '/vagrant', disabled: true
