@@ -117,7 +117,7 @@ terranet-base-$(_BASEVM_VERSION).box: machine ?= terranet-base-build
 terranet-base-$(_BASEVM_VERSION).box: box ?= terranet-base
 terranet-base-$(_BASEVM_VERSION).box: %.box: .vagrant/machines/terranet-base/$(vagrant_provider)/id
 $(vagrant_box_targets):
-	VAGRANT_VAGRANTFILE=$(VAGRANTFILE_BUILD) vagrant package $(machine) --base $$(cat .vagrant/machines/$(machine)/$(vagrant_provider)/id) --output $(box)
+	VAGRANT_VAGRANTFILE=$(VAGRANTFILE_BUILD) vagrant package $(machine) --base $$(cat .vagrant/machines/$(machine)/$(vagrant_provider)/id) --output $@
 
 ## Vagrant clean targets
 .PHONY: vagrant-clean-all $(vagrant_clean_machine_targets)
