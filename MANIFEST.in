@@ -1,8 +1,1 @@
-exclude .gitignore Vagrantfile Vagrantfile.build
-global-exclude *.env *.box *.log
-prune build/
-prune dist/
-prune var/
-prune etc/
-prune .git/
-prune .vagrant/
+include Vagrantfile
