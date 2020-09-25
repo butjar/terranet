@@ -27,4 +27,5 @@ setup(
     package_data={
         'terranet': ['examples/.komondor/simple_terranet/**/*.cfg']
     },
+    scripts=['terranet/examples/simple_terranet.py'],
 )
