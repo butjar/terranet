@@ -9,13 +9,16 @@ $vm_memory = ENV['VM_MEMORY'] || 4096
 $dev_provisioning = <<~SCRIPT
   influx -execute 'CREATE DATABASE customerstats'
   influx -execute 'CREATE DATABASE switchstats'
+SCRIPT
 
-  pip3 install -e /vagrant
-
+# terranet-dev after up trigger
+$dev_afterup = <<~SCRIPT
   systemctl restart collectd.service
   systemctl restart influxdb.service
   systemctl restart influxd.service
   systemctl restart grafana-server.service
+
+  pip3 install -e /vagrant
 SCRIPT
 
 Vagrant.configure('2') do |config|
@@ -52,5 +55,9 @@ Vagrant.configure('2') do |config|
     t.vm.synced_folder 'var/lib/grafana/dashboards',
                        '/var/lib/grafana/dashboards'
     t.vm.provision 'shell', inline: $dev_provisioning
+
+    t.trigger.after :up do |trigger|
+        trigger.run_remote = { inline: $dev_afterup }
+    end
   end
 end
