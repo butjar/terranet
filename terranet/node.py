@@ -40,8 +40,8 @@ class WifiNode(TerranetRouter):
                  komondor_args={},
                  *args, **kwargs):
         self._komondor_config = KomondorNodeConfig(name, **komondor_args)
-        super(WifiNode, self).__init__(name,
-                                       *args, **kwargs)
+        super().__init__(name,
+                         *args, **kwargs)
 
     @property
     def komondor_config(self):
@@ -90,9 +90,9 @@ class WifiAccessPoint(WifiNode):
                  komondor_args={},
                  *args, **kwargs):
         komondor_args.update({"type": 0})
-        super(WifiAccessPoint, self).__init__(name,
-                                              komondor_args=komondor_args,
-                                              *args, **kwargs)
+        super().__init__(name,
+                         komondor_args=komondor_args,
+                         *args, **kwargs)
 
     def connected_stations(self):
         stations = []
@@ -113,9 +113,9 @@ class WifiStation(WifiNode):
                  komondor_args={},
                  *args, **kwargs):
         komondor_args.update({"type": 1})
-        super(WifiStation, self).__init__(name,
-                                          komondor_args=komondor_args,
-                                          *args, **kwargs)
+        super().__init__(name,
+                         komondor_args=komondor_args,
+                         *args, **kwargs)
 
 
 class ClientNode(WifiStation):
@@ -125,16 +125,17 @@ class ClientNode(WifiStation):
                  komondor_args={},
                  *args, **kwargs):
         komondor_args.update(coordinates)
-        super(ClientNode, self).__init__(name,
-                                         komondor_args=komondor_args,
-                                         *args, **kwargs)
+        super().__init__(name,
+                         komondor_args=komondor_args,
+                         *args, **kwargs)
 
 
 class DistributionNode60(TerranetRouter):
     def __init__(self,
                  name,
                  *args, **kwargs):
-        super(DistributionNode60, self).__init__(name, *args, **kwargs)
+        super().__init__(name,
+                         *args, **kwargs)
 
 
 class DistributionNode5_60(WifiAccessPoint):
@@ -156,9 +157,9 @@ class DistributionNode5_60(WifiAccessPoint):
         komondor_args.update(coordinates)
         komondor_args.update(channel_config)
         self.fronthaulemulator = fronthaulemulator
-        super(DistributionNode5_60, self).__init__(name,
-                                                   komondor_args=komondor_args,
-                                                   *args, **kwargs)
+        super().__init__(name,
+                         komondor_args=komondor_args,
+                         *args, **kwargs)
         self.run_config_api_thread()
 
     def run_config_api_thread(self):
@@ -195,8 +196,10 @@ class DistributionNode5_60(WifiAccessPoint):
 
 
 class Gateway(OVSBridge):
-    def __init__(self, name, **params):
-        super(Gateway, self).__init__(name, **params)
+    def __init__(self, name,
+                 **params):
+        super().__init__(name,
+                         **params)
 
 
 class IperfHost(IPHost):
@@ -205,7 +208,8 @@ class IperfHost(IPHost):
                  autostart=True,
                  autostart_params=None,
                  *args, **kwargs):
-        super(IperfHost, self).__init__(name, *args, **kwargs)
+        super().__init__(name,
+                         *args, **kwargs)
         if "logfile" in kwargs:
             self.logfile = params["logfile"]
         else:
@@ -245,7 +249,7 @@ class IperfHost(IPHost):
 
     def terminate(self):
         self.stop()
-        super(IperfHost, self).terminate()
+        super().terminate()
 
 
 class IperfClient(IperfHost):
@@ -256,7 +260,8 @@ class IperfClient(IperfHost):
                  *args, **kwargs):
         self.host = host
         self.netstat_log = netstat_log
-        super(IperfClient, self).__init__(name, *args, **kwargs)
+        super().__init__(name,
+                         *args, **kwargs)
 
     @property
     def host(self):
@@ -273,9 +278,9 @@ class IperfClient(IperfHost):
             bin="iperf3",
             iperf_args="-6 -t0 -i10 -u -b0 -l1400 -Z",
             *args, **kwargs):
-        super(IperfClient, self).run(bin=bin,
-                                     iperf_args=iperf_args,
-                                     *args, **kwargs)
+        super().run(bin=bin,
+                    iperf_args=iperf_args,
+                    *args, **kwargs)
 
         if not self.host:
             raise ValueError("""Host attribute must be set before running
@@ -312,29 +317,30 @@ class IperfReverseClient(IperfClient):
     def __init__(self,
                  name,
                  *args, **kwargs):
-        super(IperfReverseClient, self).__init__(name,
-                                                 *args, **kwargs)
+        super().__init__(name,
+                         *args, **kwargs)
 
     def run(self,
             bin="iperf3",
             iperf_args="-6 -R -t0 -i10 -u -b0 -l1400 -Z",
             *args, **kwargs):
-        super(IperfReverseClient, self).run(bin=bin,
-                                            iperf_args=iperf_args,
-                                            *args, **kwargs)
+        super().run(bin=bin,
+                    iperf_args=iperf_args,
+                    *args, **kwargs)
 
 
 class IperfServer(IperfHost):
     def __init__(self, name, *args, **kwargs):
-        super(IperfServer, self).__init__(name, *args, **kwargs)
+        super().__init__(name,
+                         *args, **kwargs)
 
     def run(self,
             bin="iperf3",
             iperf_args="-s",
             *args, **kwargs):
-        super(IperfServer, self).run(bin=bin,
-                                     iperf_args=iperf_args,
-                                     *args, **kwargs)
+        super().run(bin=bin,
+                    iperf_args=iperf_args,
+                    *args, **kwargs)
 
         # --logfile option requires iperf3 >= 3.1
         cmd = ("{bin} {iperf_args} "
@@ -379,7 +385,7 @@ class KomondorConfigChangeEvent(TerranetEvent):
                  update):
         self.node = node
         self.update = update
-        super(KomondorConfigChangeEvent, self).__init__()
+        super().__init__()
 
 
 class ChannelSwitchEvent(TerranetEvent):
@@ -390,18 +396,18 @@ class ChannelSwitchEvent(TerranetEvent):
         self.node = node
         self.old_channel_config = old_channel_config
         self.new_channel_config = new_channel_config
-        super(ChannelSwitchEvent, self).__init__()
+        super().__init__()
 
 
 class FronthaulEmulatorRegistrationEvent(TerranetEvent):
     def __init__(self,
                  node):
         self.node = node
-        super(FronthaulEmulatorRegistrationEvent, self).__init__()
+        super().__init__()
 
 
 class FronthaulEmulatorCancelRegistrationEvent(TerranetEvent):
     def __init__(self,
                  node):
         self.node = node
-        super(FronthaulEmulatorCancelRegistrationEvent, self).__init__()
+        super().__init__()
