@@ -7,7 +7,8 @@ from mininet.log import info, warn
 from mininet.node import OVSBridge
 
 from ipmininet.host import IPHost
-from ipmininet.router import Router, ProcessHelper
+from ipmininet.router import ProcessHelper
+from ipmininet.router import OpenrRouter
 
 from .router_config import OpenrConfig
 from .config_api import ConfigAPI
@@ -19,28 +20,21 @@ from .wifi.channel import Channel
 import netns
 
 
-class Terranode(Router):
-    def __init__(self,
-                 name,
+class TerranetRouter(OpenrRouter):
+    def __init__(self, name,
                  config=OpenrConfig,
-                 cwd='/tmp',
-                 process_manager=ProcessHelper,
-                 use_v4=True,
-                 use_v6=True,
-                 password=None,
+                 lo_addresses=(),
+                 privateDirs=['/tmp'],
                  *args, **kwargs):
         self.has_changed = False
-        super(Terranode, self).__init__(name,
-                                        config=config,
-                                        cwd=cwd,
-                                        process_manager=process_manager,
-                                        use_v4=use_v4,
-                                        use_v6=use_v6,
-                                        password=password,
-                                        *args, **kwargs)
+        super().__init__(name,
+                         config=config,
+                         lo_addresses=lo_addresses,
+                         privateDirs=privateDirs,
+                         *args, **kwargs)
 
 
-class WifiNode(Terranode):
+class WifiNode(TerranetRouter):
     def __init__(self,
                  name,
                  komondor_args={},
@@ -136,7 +130,7 @@ class ClientNode(WifiStation):
                                          *args, **kwargs)
 
 
-class DistributionNode60(Terranode):
+class DistributionNode60(TerranetRouter):
     def __init__(self,
                  name,
                  *args, **kwargs):
@@ -215,7 +209,7 @@ class IperfHost(IPHost):
         if "logfile" in kwargs:
             self.logfile = params["logfile"]
         else:
-            self.logfile = "/tmp/iperf_{}.log".format(self.name)
+            self.logfile = "/var/log/iperf_{}.log".format(self.name)
         self.pids = {}
         self.bind_address = None
         self.autostart = autostart

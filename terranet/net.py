@@ -2,7 +2,7 @@ from mininet.node import OVSSwitch
 from ipmininet.ipnet import IPNet
 from ipmininet.ipnet import IPLink, IPIntf
 from .link import TerraLink, TerraIntf
-from .node import (Terranode, ClientNode, DistributionNode60,
+from .node import (TerranetRouter, ClientNode, DistributionNode60,
                    DistributionNode5_60, IperfHost, IperfClient,
                    IperfServer, WifiNode, WifiAccessPoint,
                    WifiStation)
@@ -66,40 +66,40 @@ class Terranet(IPNet):
                 else:
                     iperf_host.run()
 
-    def terranodes(self):
-        return list(filter(lambda x: isinstance(x, Terranode),
+    def terranet_routers(self):
+        return list(filter(lambda x: isinstance(x, TerranetRouter),
                            self.routers))
 
     def client_nodes(self):
         return list(filter(lambda x: isinstance(x, ClientNode),
-                           self.terranodes()))
+                           self.terranet_routers()))
 
     def distribution_nodes(self):
         return distribution_nodes_60 + distribution_nodes_5_60
 
     def distribution_nodes_60(self):
         return list(filter(lambda x: isinstance(x, DistributionNode60),
-                           self.terranodes()))
+                           self.terranet_routers()))
 
     def distribution_nodes_5_60(self):
         return list(filter(lambda x: isinstance(x, DistributionNode5_60),
-                           self.terranodes()))
+                           self.terranet_routers()))
 
     def wifi_nodes(self):
         return list(filter(lambda x: isinstance(x, WifiNode),
-                           self.terranodes()))
+                           self.terranet_routers()))
 
     def access_points(self):
         return list(filter(lambda x: isinstance(x, WifiAccessPoint),
-                           self.terranodes()))
+                           self.terranet_routers()))
 
     def stations(self):
         return list(filter(lambda x: isinstance(x, WifiStation),
-                           self.terranodes()))
+                           self.terranet_routers()))
 
     def get_nodes_by_komondor_setting(self, key, value):
         return list(filter(lambda x: x.komondor_config[key] == value,
-                           self.terranodes()))
+                           self.terranet_routers()))
 
     def connected_wifi_nodes(self, distribution_node_5_60):
         connectionsTo()

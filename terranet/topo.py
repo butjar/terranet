@@ -4,10 +4,12 @@ from ipaddress import IPv4Network, IPv6Network
 
 from ipmininet.link import IPLink
 from ipmininet.iptopo import IPTopo
-from .router_config import OpenrConfig, TerranetRouterDescription
+from ipmininet.router.config import OpenrConfig
+from .router_config import TerranetRouterDescription
 
-from .node import (ClientNode, DistributionNode60, DistributionNode5_60,
-                   Gateway, IperfReverseClient, IperfServer)
+from .node import (TerranetRouter, ClientNode, DistributionNode60,
+                   DistributionNode5_60, Gateway, IperfReverseClient,
+                   IperfServer)
 from .link import WifiLink, TerragraphLink
 from .wifi.komondor_config import KomondorSystemConfig
 
@@ -20,16 +22,15 @@ class Terratopo(IPTopo):
             self.komondor_system_config = KomondorSystemConfig()
         super(Terratopo, self).__init__(*args, **kwargs)
 
-    def addDaemon(self, router, daemon, default_cfg_class=OpenrConfig,
-                  cfg_daemon_list="daemons", **daemon_params):
-        super(Terratopo, self).addDaemon(router, daemon,
-                                         default_cfg_class=default_cfg_class,
-                                         cfg_daemon_list=cfg_daemon_list,
-                                         **daemon_params)
-
-    def addRouter(self, name, **kwargs):
-        router = self.addNode(name, isRouter=True, **kwargs)
-        return TerranetRouterDescription(router, self)
+    def addRouter(self, name,
+                  cls=TerranetRouter,
+                  routerDescription=TerranetRouterDescription,
+                  config=OpenrConfig,
+                  **kwargs):
+        return routerDescription(self.addNode(str(name),
+                                              isRouter=True,
+                                              cls=cls,
+                                              **kwargs), self)
 
     def add_client_node(self, name, **opts):
         return self.addRouter(name, is_client_node=True, cls=ClientNode,
@@ -87,7 +88,7 @@ class Terratopo(IPTopo):
         return list(filter(self.is_distribution_node_60,
                            self.nodes(sort)))
 
-    def terranodes(self, sort=True):
+    def terranet_routers(self, sort=True):
         return client_nodes(sort=sort) + distribution_nodes(sort=sort)
 
     def _get_customer_ip(self, ip):
