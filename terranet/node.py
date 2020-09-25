@@ -256,10 +256,10 @@ class IperfClient(IperfHost):
     def __init__(self,
                  name,
                  host=None,
-                 netstat_log=None,
+                 netstats_log=None,
                  *args, **kwargs):
         self.host = host
-        self.netstat_log = netstat_log
+        self.netstats_log = netstats_log
         super().__init__(name,
                          *args, **kwargs)
 
@@ -287,16 +287,16 @@ class IperfClient(IperfHost):
                                 iperf client.""")
 
         iface = self.intfList()[0]
-        if not self.netstat_log:
-            self.netstat_log = "/tmp/{}_{}_netstat.log".format(iface.name,
-                                                               iface.ip6)
-        netstat_cmd = ("(while :; do "
+        if not self.netstats_log:
+            self.netstats_log = "/var/log/{}_{}_netstats.log".format(iface.name,
+                                                                   iface.ip6)
+        netstats_cmd = ("(while :; do "
                        "cat /proc/net/dev | grep {intf} > {logfile} 2>&1; "
                        "sleep {interval}; done) &").format(intf=iface.name,
-                                                           logfile=self.netstat_log,
+                                                           logfile=self.netstats_log,
                                                            interval=2)
-        p_netstat = self.popen(netstat_cmd, shell=True)
-        self.pids.update({"netstat_logger": p_netstat.pid})
+        p_netstats = self.popen(netstats_cmd, shell=True)
+        self.pids.update({"netstats_logger": p_netstats.pid})
 
         # --logfile option requires iperf3 >= 3.1
         cmd = ("until ping6 -c1 {host} >/dev/null 2>&1; do :; done; "
