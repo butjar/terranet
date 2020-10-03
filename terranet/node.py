@@ -10,6 +10,7 @@ from ipmininet.host import IPHost
 from ipmininet.router import ProcessHelper
 from ipmininet.router import OpenrRouter
 
+from .proxy import NamespaceProxy
 from .router_config import OpenrConfig
 from .config_api import ConfigAPI
 from .link import WifiLink
@@ -18,7 +19,6 @@ from .wifi.komondor_config import KomondorNodeConfig
 from .wifi.channel import Channel
 
 import netns
-
 
 class TerranetRouter(OpenrRouter):
     def __init__(self, name,
@@ -134,6 +134,10 @@ class ConfigurableWifiAccessPoint(WifiAccessPoint):
         super().__init__(name, ssid,
                          *args, **kwargs)
         self.run_config_api_thread()
+        self.proxy = None
+        self.proxy_port = proxy_port
+        if proxy_port:
+            self.proxy = self.run_namespace_proxy()
 
     def run_config_api_thread(self):
         nspid = self.pid
@@ -145,6 +149,16 @@ class ConfigurableWifiAccessPoint(WifiAccessPoint):
             api_thread.daemon = True
             api_thread.start()
 
+    def run_namespace_proxy(self):
+        nspid = self.pid
+        proxy = NamespaceProxy(nspid, self.proxy_port)
+        info('Starting Namespace proxy for node {}'
+             'with NSPID {} on port {}.\n'.format(self.name,
+                                                  proxy.nspid,
+                                                  proxy.port))
+        proxy.start_proxy_process()
+        info('Proxy started at process {}.\n'.format(proxy.process.pid))
+        return proxy
 
     def switch_channel(self, channel, primary_channel=None):
         channel_params = channel.komondor_channel_params
@@ -164,6 +178,18 @@ class ConfigurableWifiAccessPoint(WifiAccessPoint):
                                  new_channel_cfg)
         self.notify_fronthaulemulator(evt)
         return (evt.result, evt.message)
+
+    def terminate(self):
+        if self.proxy and self.proxy.process:
+            try:
+                pid = self.proxy.process.pid
+                info('Terminating proxy process with pid {}.\n'.format(pid))
+                self.proxy.process.terminate()
+            except Exception as e:
+                warn('Could not kill proxy process: \n'
+                     '{}\n'.format(e))
+        super().terminate()
+
 
 class WifiStation(WifiNode):
     def __init__(self,

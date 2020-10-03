@@ -42,7 +42,8 @@ class SimpleTerranetTopo(Terratopo):
             "dn_a",
             ssid="A",
             available_channels=channel_list,
-            coordinates={"x": 0, "y": 0, "z": 0})
+            coordinates={"x": 0, "y": 0, "z": 0},
+            proxy_port=8199)
 
         cn_a1 = self.add_client_node("cn_a1",
                                      coordinates={"x": 0, "y": 20, "z": 0})
@@ -54,7 +55,8 @@ class SimpleTerranetTopo(Terratopo):
             "dn_b",
             ssid="B",
             available_channels=channel_list,
-            coordinates={"x": 20, "y": 0, "z": 0})
+            coordinates={"x": 20, "y": 0, "z": 0},
+            proxy_port=8299)
 
         cn_b1 = self.add_client_node("cn_b1",
                                      coordinates={"x": 20, "y": 20, "z": 0})
@@ -66,7 +68,8 @@ class SimpleTerranetTopo(Terratopo):
             "dn_c",
             ssid="C",
             available_channels=channel_list,
-            coordinates={"x": 40, "y": 0, "z": 0})
+            coordinates={"x": 40, "y": 0, "z": 0},
+            proxy_port=8399)
 
         cn_c1 = self.add_client_node("cn_c1",
                                      coordinates={"x": 40, "y": 20, "z": 0})
