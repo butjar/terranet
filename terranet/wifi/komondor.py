@@ -28,7 +28,12 @@ class Komondor(object):
             raise ValueError("Komondor executable {} not found."
                              .format(executable))
 
-    def run(self, cfg, time=100, seed=1000, stats=None, **kwargs):
+    def run(self, cfg, time=100, seed=1, stats=None, **kwargs):
+        '''
+        :param int time: Simulation time in seconds.
+        :param int seed: Random seed.
+        '''
+
         defaults = {
             "stdout": subprocess.PIPE,
             "stderr": subprocess.PIPE
