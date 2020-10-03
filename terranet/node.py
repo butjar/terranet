@@ -203,8 +203,7 @@ class Gateway(OVSBridge):
 
 
 class IperfHost(IPHost):
-    def __init__(self,
-                 name,
+    def __init__(self, name,
                  autostart=True,
                  autostart_params=None,
                  *args, **kwargs):
@@ -253,8 +252,7 @@ class IperfHost(IPHost):
 
 
 class IperfClient(IperfHost):
-    def __init__(self,
-                 name,
+    def __init__(self, name,
                  host=None,
                  netstats_log=None,
                  *args, **kwargs):
@@ -314,8 +312,7 @@ class IperfClient(IperfHost):
 
 
 class IperfReverseClient(IperfClient):
-    def __init__(self,
-                 name,
+    def __init__(self, name,
                  *args, **kwargs):
         super().__init__(name,
                          *args, **kwargs)
@@ -380,17 +377,14 @@ class TerranetEvent(object):
 
 
 class KomondorConfigChangeEvent(TerranetEvent):
-    def __init__(self,
-                 node,
-                 update):
+    def __init__(self, node, update):
         self.node = node
         self.update = update
         super().__init__()
 
 
 class ChannelSwitchEvent(TerranetEvent):
-    def __init__(self,
-                 node,
+    def __init__(self, node,
                  old_channel_config,
                  new_channel_config):
         self.node = node
@@ -400,14 +394,12 @@ class ChannelSwitchEvent(TerranetEvent):
 
 
 class FronthaulEmulatorRegistrationEvent(TerranetEvent):
-    def __init__(self,
-                 node):
+    def __init__(self, node):
         self.node = node
         super().__init__()
 
 
 class FronthaulEmulatorCancelRegistrationEvent(TerranetEvent):
-    def __init__(self,
-                 node):
+    def __init__(self, node):
         self.node = node
         super().__init__()
