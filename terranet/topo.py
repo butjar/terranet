@@ -7,9 +7,11 @@ from ipmininet.iptopo import IPTopo
 from ipmininet.router.config import OpenrConfig
 from .router_config import TerranetRouterDescription
 
-from .node import (TerranetRouter, ClientNode, DistributionNode60,
-                   DistributionNode5_60, Gateway, IperfReverseClient,
-                   IperfServer)
+from .node import (TerranetRouter, ClientNode,
+                   DistributionNode60, DistributionNode5_60,
+                   WifiAccessPoint, ConfigurableWifiAccessPoint,
+                   Gateway,
+                   IperfReverseClient, IperfServer)
 from .link import WifiLink, TerragraphLink
 from .wifi.komondor_config import KomondorSystemConfig
 
@@ -37,12 +39,21 @@ class Terratopo(IPTopo):
                               **opts)
 
     def add_distribution_node_60(self, name, **opts):
-        return self.addRouter(name, is_distribution_node60=True,
+        return self.addRouter(name, is_distribution_node=True,
                               cls=DistributionNode60, **opts)
 
     def add_distribution_node_5_60(self, name, **opts):
-        return self.addRouter(name, is_distribution_node_5_60=True,
+        return self.addRouter(name, is_distribution_node=True,
+                              is_access_point=True,
                               cls=DistributionNode5_60, **opts)
+
+    def add_access_point(self, name, **opts):
+        return self.addRouter(name, is_access_point=True,
+                              cls=WifiAccessPoint, **opts)
+
+    def add_smart_access_point(self, name, **opts):
+        return self.addRouter(name, is_access_point=True,
+                              cls=ConfigurableWifiAccessPoint, **opts)
 
     def add_gateway(self, name, **opts):
         return self.addSwitch(name, cls=Gateway, **opts)
@@ -66,26 +77,15 @@ class Terratopo(IPTopo):
     def is_client_node(self, node):
         return self.isNodeType(node, 'is_client_node')
 
-    def is_distribution_node_5_60(self, node):
-        return self.isNodeType(node, 'is_distribution_node_5_60')
-
-    def is_distribution_node_60(self, node):
-        return self.isNodeType(node, 'is_distribution_node_60')
+    def is_distribution_node(self, node):
+        return self.isNodeType(node, 'is_distribution_node')
 
     def client_nodes(self, sort=True):
         return list(filter(self.is_client_node,
                            self.nodes(sort)))
 
     def distribution_nodes(self, sort=True):
-        return (self.distribution_nodes_5_60(sort=sort) +
-                self.distribution_nodes_60(sort=sort))
-
-    def distribution_nodes_5_60(self, sort=True):
-        return list(filter(self.is_distribution_node_5_60,
-                           self.nodes(sort)))
-
-    def distribution_nodes_60(self, sort=True):
-        return list(filter(self.is_distribution_node_60,
+        return list(filter(self.is_distribution_node,
                            self.nodes(sort)))
 
     def terranet_routers(self, sort=True):

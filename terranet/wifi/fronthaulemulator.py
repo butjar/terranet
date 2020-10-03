@@ -63,10 +63,10 @@ class FronthaulEmulator(object):
     def handle_channel_switch(self, evt):
         info("FronthaulEmulator: Node {} triggered channel switch.\n"
              .format(evt.node.name))
-        dn = evt.node
-        client_nodes = dn.connected_stations()
+        ap = evt.node
+        client_nodes = ap.connected_stations()
         try:
-            self.adjust_station_wifi_config(dn)
+            self.adjust_station_wifi_config(ap)
             self.apply_wifi_config()
             evt.result = True
             evt.message = "New config file: {}\n"\
@@ -77,7 +77,7 @@ class FronthaulEmulator(object):
                                Rolling back to previos config: {}.\n"""\
                             .format(err, self.current_komondor_file)
             warn(error_message)
-            for node in (client_nodes + [dn]):
+            for node in (client_nodes + [ap]):
                 node.update_komondor_config(evt.old_channel_config)
             self.apply_wifi_config()
             evt.result = False
@@ -134,12 +134,12 @@ class FronthaulEmulator(object):
              .format(config.cfg_file))
 
     def apply_results(self):
-        for dn in self.net.distribution_nodes_5_60():
-            client_nodes = dn.connected_stations()
-            for cn in client_nodes:
-                komondor_name = cn.komondor_config.name
+        for ap in self.net.access_points():
+            stas = ap.connected_stations()
+            for sta in stas:
+                komondor_name = sta.komondor_config.name
                 result = self.current_komondor_result[komondor_name]
-                links = self.net.linksBetween(dn, cn)
+                links = self.net.linksBetween(ap, sta)
                 for link in links:
                     bw = int(result.getint("throughput") / 1000000)
                     delay = "{}ms".format(int(result.getfloat("delay")))

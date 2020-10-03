@@ -35,10 +35,12 @@ class TerranetRouter(OpenrRouter):
 
 
 class WifiNode(TerranetRouter):
-    def __init__(self,
-                 name,
-                 komondor_args={},
+    def __init__(self, name,
+                 komondor_args={'x': 0, 'y': 0, 'z': 0},
+                 coordinates={},
                  *args, **kwargs):
+        komondor_args = self._insert_coorinates(coordinates,
+                                                komondor_args)
         self._komondor_config = KomondorNodeConfig(name, **komondor_args)
         super().__init__(name,
                          *args, **kwargs)
@@ -46,6 +48,11 @@ class WifiNode(TerranetRouter):
     @property
     def komondor_config(self):
         return self._komondor_config
+
+    def _insert_coorinates(self, coord, d={}):
+        coord = { k: v for k, v in coord.items() if k in ('x', 'y', 'z') }
+        d.update(coord)
+        return d
 
     def channel_config(self):
         kcfg = self.komondor_config
@@ -85,11 +92,21 @@ class WifiNode(TerranetRouter):
 
 
 class WifiAccessPoint(WifiNode):
-    def __init__(self,
-                 name,
+    def __init__(self, name, ssid,
+                 available_channels=[Channel(32)],
+                 primary_channel=None,
+                 fronthaulemulator=None,
                  komondor_args={},
                  *args, **kwargs):
         komondor_args.update({"type": 0})
+        self.available_channels = available_channels
+        channel_config = available_channels[0].komondor_channel_params
+        if not primary_channel:
+            primary_channel = channel_config["min_channel_allowed"]
+        komondor_args.update({"wlan_code": ssid,
+                              "primary_channel": primary_channel})
+        komondor_args.update(channel_config)
+        self.fronthaulemulator = fronthaulemulator
         super().__init__(name,
                          komondor_args=komondor_args,
                          *args, **kwargs)
@@ -106,59 +123,15 @@ class WifiAccessPoint(WifiNode):
                     stations.append(node1)
         return stations
 
+    def get_channel_config(self):
+        return self.channel_config()
 
-class WifiStation(WifiNode):
-    def __init__(self,
-                 name,
-                 komondor_args={},
+
+class ConfigurableWifiAccessPoint(WifiAccessPoint):
+    def __init__(self, name, ssid,
+                 proxy_port=None,
                  *args, **kwargs):
-        komondor_args.update({"type": 1})
-        super().__init__(name,
-                         komondor_args=komondor_args,
-                         *args, **kwargs)
-
-
-class ClientNode(WifiStation):
-    def __init__(self,
-                 name,
-                 coordinates={"x": 0, "y": 0, "z": 0},
-                 komondor_args={},
-                 *args, **kwargs):
-        komondor_args.update(coordinates)
-        super().__init__(name,
-                         komondor_args=komondor_args,
-                         *args, **kwargs)
-
-
-class DistributionNode60(TerranetRouter):
-    def __init__(self,
-                 name,
-                 *args, **kwargs):
-        super().__init__(name,
-                         *args, **kwargs)
-
-
-class DistributionNode5_60(WifiAccessPoint):
-    def __init__(self,
-                 name,
-                 ssid,
-                 available_channels=[Channel(32)],
-                 primary_channel=None,
-                 coordinates={"x": 0, "y": 0, "z": 0},
-                 komondor_args={},
-                 fronthaulemulator=None,
-                 *args, **kwargs):
-        self.available_channels = available_channels
-        channel_config = available_channels[0].komondor_channel_params
-        if not primary_channel:
-            primary_channel = channel_config["min_channel_allowed"]
-        komondor_args.update({"wlan_code": ssid,
-                              "primary_channel": primary_channel})
-        komondor_args.update(coordinates)
-        komondor_args.update(channel_config)
-        self.fronthaulemulator = fronthaulemulator
-        super().__init__(name,
-                         komondor_args=komondor_args,
+        super().__init__(name, ssid,
                          *args, **kwargs)
         self.run_config_api_thread()
 
@@ -172,8 +145,6 @@ class DistributionNode5_60(WifiAccessPoint):
             api_thread.daemon = True
             api_thread.start()
 
-    def get_channel_config(self):
-        return self.channel_config()
 
     def switch_channel(self, channel, primary_channel=None):
         channel_params = channel.komondor_channel_params
@@ -193,6 +164,37 @@ class DistributionNode5_60(WifiAccessPoint):
                                  new_channel_cfg)
         self.notify_fronthaulemulator(evt)
         return (evt.result, evt.message)
+
+class WifiStation(WifiNode):
+    def __init__(self,
+                 name,
+                 komondor_args={},
+                 *args, **kwargs):
+        komondor_args.update({"type": 1})
+        super().__init__(name,
+                         komondor_args=komondor_args,
+                         *args, **kwargs)
+
+
+class ClientNode(WifiStation):
+    def __init__(self, name,
+                 *args, **kwargs):
+        super().__init__(name,
+                         *args, **kwargs)
+
+
+class DistributionNode60(TerranetRouter):
+    def __init__(self, name,
+                 *args, **kwargs):
+        super().__init__(name,
+                         *args, **kwargs)
+
+
+class DistributionNode5_60(ConfigurableWifiAccessPoint):
+    def __init__(self, name, ssid,
+                 *args, **kwargs):
+        super().__init__(name, ssid,
+                         *args, **kwargs)
 
 
 class Gateway(OVSBridge):
