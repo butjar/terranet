@@ -25,7 +25,8 @@ setup(
     ],
     include_package_data=True,
     package_data={
-        'terranet': ['examples/.komondor/simple_terranet/**/*.cfg']
+        'terranet': ['examples/.komondor/**/*']
     },
-    scripts=['terranet/examples/simple_terranet.py'],
+    scripts=['terranet/examples/simple_terranet.py',
+             'terranet/examples/hybrid_handover.py'],
 )
