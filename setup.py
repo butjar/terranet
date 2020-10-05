@@ -26,8 +26,8 @@ setup(
     ],
     include_package_data=True,
     package_data={
-        'terranet': ['examples/.komondor/**/*']
+        'terranet': ['topo/.komondor/**/*']
     },
-    scripts=['terranet/examples/simple_terranet.py',
-             'terranet/examples/hybrid_handover.py'],
+    scripts=['examples/run_virtual_fiber_net.py',
+             'examples/run_hybrid_backup_net.py'],
 )

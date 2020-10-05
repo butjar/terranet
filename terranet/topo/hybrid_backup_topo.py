@@ -1,20 +1,61 @@
-#! python
-import os
-from mininet.cli import CLI
-from mininet.log import setLogLevel, info
-from mininet.node import OVSSwitch
-from mininet.node import RemoteController
+from .terratopo import Terratopo
+from ..wifi.channel import Channel
 
-from ipmininet.cli import IPCLI
+class HybridBackupTerragraphTopo(Terratopo):
+    '''
+    mmWave Distribution Network backhaul
+    ====================================
 
-from terranet.net import Terranet
-from terranet.topo import Terratopo
+            +-----+            +-----+
+            |cn_a1|            |cn_b1|
+            +-----+            +-----+
+      5GHz .   |                  |   . 5GHz
+          .                            .
+    +----+     |                  |      +----+
+    |ap_a|      60GHz        60GHz       |ap_b|
+    +----+     |                  |      +----+
+          \                            /
+     cable \   |                  |   / cable
+            +------+   60GHz  +------+
+            | dn_a |- - - - - | dn_b |
+            +------+          +------+
+                |
+                | cable
+                |
+            + -_-_- +
+            |  _X_  | gw
+            + - - - +
+             | |  | |
+             | |  |  \  cable
+             .-~~~-~. \ 
+     .- ~ ~-(| |  |    \)_ _
+    /        / |   \    \   ~ -.
+   |     s1a1 s1a2 s1b1 s2b1    \ 
+    \                        _.~'
+      ~- . ______________ . -
 
-from terranet.wifi.komondor_config import KomondorConfig
-from terranet.wifi.channel import Channel
 
 
-class HybridHandoverTopo(Terratopo):
+    WiFi backup edge
+    =========
+
+        h1a1 h2a1 h3a1    h1b1 h2b1 h3b1    (CPEs)
+          \    |    /       \    |    /
+       ^   \   |   /         \   |   /      -- cable
+       |    +-----+           +-----+
+    20 |    |cn_a1|           |cn_b1|      (STAs/ CNs)
+       |    +-----+           +-----+
+       |
+       |       .                 .
+    10 |       .                 .         ... 5GHz WiFi
+       |       .                 .
+       |       .                 .
+       |    +------+          +------+
+     0 |    | ap_a |          | ap_b |     (APs/ DNs)
+       |    +------+          +------+
+       ----------------------------->
+     -15       0       25       50
+    '''
     def build(self, *args, **kwargs):
         # Segment A
         channel_list_a = [
@@ -44,10 +85,10 @@ class HybridHandoverTopo(Terratopo):
         ap_b = self.add_smart_access_point('ap_b',
                                            ssid='B',
                                            available_channels=channel_list_b,
-                                           coordinates={'x': 20, 'y': 0})
+                                           coordinates={'x': 50, 'y': 0})
         self.add_ip_link(dn_b, ap_b)
         cn_b1 = self.add_client_node('cn_b1',
-                                     coordinates={'x': 20, 'y': 20})
+                                     coordinates={'x': 50, 'y': 20})
         self.add_terragraph_link(dn_b, cn_b1)
         self.add_wifi_link(ap_b, cn_b1)
 
@@ -56,7 +97,7 @@ class HybridHandoverTopo(Terratopo):
         self.add_terragraph_link(dn_a, dn_b)
 
         # Add GW switch behind DN_A
-        gw = self.addSwitch('s1', cls=OVSSwitch)
+        gw = self.add_gateway('s1')
         self.add_ip_link(gw, dn_a)
 
         # cn_a1 customer flows
@@ -82,25 +123,3 @@ class HybridHandoverTopo(Terratopo):
                                             network=('10.161.129.0/24',
                                                      'fd00:0:0:8201:8002::0/80'),
                                             autostart_client=False)
-
-        # Build topo
-        super().build(*args, **kwargs)
-
-
-if __name__ == '__main__':
-    setLogLevel('info')
-    topo = HybridHandoverTopo()
-    komondor_config_dir = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        '.komondor',
-        os.path.basename(os.path.splitext(__file__)[0]))
-    net = Terranet(topo=topo,
-                   komondor_config_dir=komondor_config_dir,
-                   ipBase=u'10.0.0.0/9',
-                   ip6Base=u'fd00:0:0::0/49',
-                   max_v6_prefixlen=96)
-    ctrlr = RemoteController('flow_ctrlr', port=6633)
-    net.addController(ctrlr)
-    net.start()
-    IPCLI(net)
-    net.stop()
