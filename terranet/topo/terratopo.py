@@ -1,3 +1,4 @@
+import os
 import uuid
 import itertools
 from ipaddress import IPv4Network, IPv6Network
@@ -5,15 +6,15 @@ from ipaddress import IPv4Network, IPv6Network
 from ipmininet.link import IPLink
 from ipmininet.iptopo import IPTopo
 from ipmininet.router.config import OpenrConfig
-from .router_config import TerranetRouterDescription
 
-from .node import (TerranetRouter, ClientNode,
-                   DistributionNode60, DistributionNode5_60,
-                   WifiAccessPoint, ConfigurableWifiAccessPoint,
-                   Gateway,
-                   IperfReverseClient, IperfServer)
-from .link import WifiLink, TerragraphLink
-from .wifi.komondor_config import KomondorSystemConfig
+from ..router_config import TerranetRouterDescription
+from ..node import TerranetRouter, ClientNode, \
+                   DistributionNode60, DistributionNode5_60, \
+                   WifiAccessPoint, ConfigurableWifiAccessPoint, \
+                   Gateway, \
+                   IperfReverseClient, IperfServer
+from ..link import WifiLink, TerragraphLink
+from ..wifi.komondor_config import KomondorSystemConfig
 
 
 class Terratopo(IPTopo):
@@ -23,6 +24,11 @@ class Terratopo(IPTopo):
         if not komondor_system_config:
             self.komondor_system_config = KomondorSystemConfig()
         super(Terratopo, self).__init__(*args, **kwargs)
+
+    def komondor_config_dir(self):
+        topo_dir = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(topo_dir, '.komondor',
+                            str(self.__class__.__name__))
 
     def addRouter(self, name,
                   cls=TerranetRouter,
