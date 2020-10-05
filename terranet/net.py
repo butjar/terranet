@@ -2,10 +2,10 @@ from mininet.node import OVSSwitch
 from ipmininet.ipnet import IPNet
 from ipmininet.ipnet import IPLink, IPIntf
 from .link import TerraLink, TerraIntf
-from .node import (TerranetRouter, ClientNode, DistributionNode60,
-                   DistributionNode5_60, IperfHost, IperfClient,
-                   IperfServer, WifiNode, WifiAccessPoint,
-                   WifiStation)
+from .node import TerranetRouter, ClientNode, DistributionNode60, \
+                  DistributionNode5_60, IperfHost, IperfClient, \
+                  IperfServer, WifiNode, WifiAccessPoint, \
+                  WifiStation
 from .router_config import OpenrConfig
 
 from .wifi.fronthaulemulator import FronthaulEmulator
@@ -22,6 +22,9 @@ class Terranet(IPNet):
                  link=IPLink,
                  intf=IPIntf,
                  switch=OVSSwitch,
+                 ipBase=u'10.0.0.0/9',
+                 ip6Base=u'fd00:0:0::0/49',
+                 max_v6_prefixlen=96,
                  *args, **kwargs):
         if not fronthaulemulator:
             fronthaulemulator = FronthaulEmulator(
