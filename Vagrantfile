@@ -12,7 +12,7 @@ $dev_provisioning = <<~SCRIPT
 SCRIPT
 
 # terranet-dev after up trigger
-$dev_afterup = <<~SCRIPT
+$dev_init = <<~SCRIPT
   systemctl restart collectd.service
   systemctl restart influxdb.service
   systemctl restart influxd.service
@@ -56,8 +56,8 @@ Vagrant.configure('2') do |config|
                        '/var/lib/grafana/dashboards'
     t.vm.provision 'shell', inline: $dev_provisioning
 
-    t.trigger.after :up do |trigger|
-        trigger.run_remote = { inline: $dev_afterup }
+    t.trigger.after :up, :reload do |trigger|
+        trigger.run_remote = { inline: $dev_init }
     end
   end
 end
