@@ -130,6 +130,8 @@ class FronthaulEmulator(object):
         self.current_komondor_file = file_name
         self.current_komondor_config = self.komondor_configs[file_name]
         self.current_komondor_result = self.komondor_results[file_name]
+        info('FronthaulEmulator: Trying to apply new config file {}.\n'
+             .format(file_name))
         self.apply_results()
         info("FronthaulEmulator: Network config {} successfully applied.\n"
              .format(config.cfg_file))
