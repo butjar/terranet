@@ -14,6 +14,7 @@ from .wifi.komondor_config import KomondorSystemConfig
 
 class Terranet(IPNet):
     def __init__(self,
+                 topo=None,
                  komondor_system_cfg=None,
                  fronthaulemulator=None,
                  komondor_config_dir=None,
@@ -26,12 +27,16 @@ class Terranet(IPNet):
                  ip6Base=u'fd00:0:0::0/49',
                  max_v6_prefixlen=96,
                  *args, **kwargs):
+        if not komondor_config_dir:
+            if topo:
+                komondor_config_dir = topo.komondor_config_dir()
         if not fronthaulemulator:
             fronthaulemulator = FronthaulEmulator(
                 net=self,
                 komondor_config_dir=komondor_config_dir)
         self.fronthaulemulator = fronthaulemulator
-        super(Terranet, self).__init__(router=router,
+        super(Terranet, self).__init__(topo=topo,
+                                       router=router,
                                        config=config,
                                        link=link,
                                        intf=intf,
