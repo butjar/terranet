@@ -5,16 +5,17 @@ import itertools
 import multiprocessing
 from functools import partial
 from configparser import ConfigParser
-from ..node import (KomondorConfigChangeEvent,
-                    ChannelSwitchEvent,
-                    FronthaulEmulatorRegistrationEvent,
-                    FronthaulEmulatorCancelRegistrationEvent)
-from .komondor import run_komondor_worker
-from .komondor_config import (KomondorConfig,
-                              KomondorResult,
-                              KomondorSystemConfig,
-                              KomondorNodeConfig)
+
 from mininet.log import info, warn
+
+from ..event import KomondorConfigChangeEvent, ChannelSwitchEvent, \
+    FronthaulEmulatorRegistrationEvent, \
+    FronthaulEmulatorCancelRegistrationEvent
+from .komondor import run_komondor_worker
+from .komondor_config import KomondorConfig, \
+                             KomondorResult, \
+                             KomondorSystemConfig, \
+                             KomondorNodeConfig
 
 
 class FronthaulEmulator(object):
