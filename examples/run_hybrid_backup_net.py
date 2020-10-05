@@ -1,24 +1,21 @@
-import os
-
 from mininet.log import setLogLevel, info, debug
-from mininet.node import Ryu, RemoteController
 from ipmininet.cli import IPCLI
 
-import terranet
 from terranet.topo import HybridBackupTerragraphTopo
 from terranet.net import Terranet
+from terranet.controller import RyuManager
+
 
 if __name__ == '__main__':
     setLogLevel('info')
     topo = HybridBackupTerragraphTopo()
     net = Terranet(topo=topo)
-    os.environ['HOME'] = os.path.dirname(terranet.__file__)
-    modules = ['terranet.ryu.ryu.app.customer_flow_matching',
-               'terranet.ryu.ryu.app.customer_monitor']
-    ryu_manager = Ryu('ryu-manager', *modules, port=6633)
+    module_path = 'terranet.ryu.app'
+    apps = ('customer_flow_matching',
+            'customer_monitor')
+    modules = [ '.'.join([module_path, x]) for x in apps ]
+    ryu_manager = RyuManager('ryu-manager', modules=modules)
     net.addController(ryu_manager)
-    #ctrlr = RemoteController('remote_ctrlr', port=6633)
-    #net.addController(ctrlr)
     net.start()
     IPCLI(net)
     net.stop()
