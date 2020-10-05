@@ -145,7 +145,14 @@ class FronthaulEmulator(object):
                 links = self.net.linksBetween(ap, sta)
                 for link in links:
                     bw = int(result.getint("throughput") / 1000000)
-                    delay = "{}ms".format(int(result.getfloat("delay")))
+                    # Dirty fix for ZeroDivisionError in mininet
+                    if bw == 0:
+                        bw = 1
+                    delay_value = result.get('delay')
+                    if delay_value in ['nan', '-nan']:
+                        delay_value = '0'
+                    else:
+                        delay = '{}ms'.format(round(float(delay_value)))
                     link.intf1.config(bw=bw, delay=delay, use_tbf=True)
                     link.intf2.config(bw=bw, delay=delay, use_tbf=True)
 
