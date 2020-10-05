@@ -13,9 +13,6 @@ class MacLearningPipeline(app_manager.RyuApp):
     SRC_MAC_TABLE = 0
     DST_MAC_TABLE = 1
 
-    def __init__(self, *args, **kwargs):
-        super(MacLearningPipeline, self).__init__(*args, **kwargs)
-
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
         datapath = ev.msg.datapath
