@@ -254,6 +254,7 @@ class CustomerFlowMatching(MacLearningPipeline):
             mod = parser.OFPFlowMod(datapath=datapath,
                                     table_id=table_id,
                                     match=dst_match,
+                                    idle_timeout=10,
                                     instructions=inst)
             datapath.send_msg(mod)
 
@@ -264,6 +265,7 @@ class CustomerFlowMatching(MacLearningPipeline):
                                     buffer_id=buffer_id,
                                     table_id=table_id,
                                     match=src_match,
+                                    idle_timeout=10,
                                     instructions=inst)
             datapath.send_msg(mod)
 
