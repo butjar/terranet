@@ -10,6 +10,8 @@ from .router_config import OpenrConfig
 
 from .wifi.fronthaulemulator import FronthaulEmulator
 from .wifi.komondor_config import KomondorSystemConfig
+from .influx.customerstats import CustomerstatsContinuousQueries
+from .influx.switchstats import SwitchstatsContinuousQueries
 
 
 class Terranet(IPNet):
@@ -53,9 +55,17 @@ class Terranet(IPNet):
         if self.fronthaulemulator:
             self.fronthaulemulator.apply_wifi_config()
 
+        CustomerstatsContinuousQueries.create_cqs()
+        SwitchstatsContinuousQueries.create_cqs()
+
     def start(self):
         super(Terranet, self).start()
         self.start_iperf_hosts()
+
+    def stop(self):
+        super().stop()
+        CustomerstatsContinuousQueries.drop_cqs()
+        SwitchstatsContinuousQueries.drop_cqs()
 
     def start_iperf_hosts(self):
         # resolve iperf server addresses
