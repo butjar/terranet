@@ -1,0 +1,49 @@
+{
+  "variables": {
+      "atlas_access_token": "{{env `ATLAS_ACCESS_TOKEN`}}",
+      "version": null,
+      "_version": null,
+      "script": null
+  },
+  "builders": [
+    {
+      "name": "virtualbox-builder",
+      "type": "vagrant",
+      "communicator": "ssh",
+      "provider": "virtualbox",
+      "source_path": "ubuntu/bionic64",
+      "box_name": "terranet-base",
+      "synced_folder": "",
+      "insert_key": "false",
+      "template": "Vagrantfile.tpl",
+      "output_dir": "build/{{user `_version`}}",
+      "output_vagrantfile": "Vagrantfile"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "script": "{{user `script`}}",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "apt install --reinstall ca-certificates",
+        "curl -sL https://raw.githubusercontent.com/hashicorp/vagrant/master/keys/vagrant.pub >> /home/vagrant/.ssh/authorized_keys",
+        "chown vagrant:vagrant /home/vagrant/.ssh/authorized_keys",
+        "chmod 600 /home/vagrant/.ssh/authorized_keys"
+      ],
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'"
+    }
+  ],
+  "post-processors": [
+    {
+      "name": "vagrant-cloud-uploader",
+      "type": "vagrant-cloud",
+      "box_tag": "butja/terranet-base",
+      "access_token": "{{user `atlas_access_token`}}",
+      "version": "{{user `version`}}"
+    }
+  ]
+}

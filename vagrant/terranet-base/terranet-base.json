@@ -1,0 +1,68 @@
+{
+  "variables": {
+      "atlas_access_token": "{{env `ATLAS_ACCESS_TOKEN`}}",
+      "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+      "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+      "version": null,
+      "_version": null
+  },
+  "builders": [
+    {
+      "name": "terranet-base-virtualbox-builder",
+      "type": "vagrant",
+      "communicator": "ssh",
+      "provider": "virtualbox",
+      "source_path": "ubuntu/bionic64",
+      "box_name": "terranet-base",
+      "synced_folder": "",
+      "insert_key": "false",
+      "template": "packer/terranet-base/vagrantfile.tpl",
+      "output_dir": "packer/build/terranet-base/virtualbox/{{user `_version`}}"
+    },
+    {
+      "name": "terranet-base-aws-builder",
+      "type": "amazon-ebs",
+      "access_key": "{{user `aws_access_key`}}",
+      "secret_key": "{{user `aws_secret_key`}}",
+      "region": "eu-central-1",
+      "source_ami": "ami-05ef33ae54898e90c",
+      "instance_type": "t3.large",
+      "ssh_username": "ubuntu",
+      "ami_name": "terranet-base {{timestamp}}",
+      "ami_groups": "all",
+      "launch_block_device_mappings": [
+        {
+          "device_name": "/dev/sda1",
+          "encrypted": false,
+          "volume_size": 15
+        }
+      ],
+      "tags": {
+        "version": "user `version`"
+      }
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "script": "install/install_terranet_base.sh",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'"
+    }
+  ],
+  "post-processors": [
+    [
+      {
+        "name": "vagrant-terranet-base-aws",
+        "type": "vagrant",
+        "output": "packer/build/terranet-base/{{user `_version`}}/{{.Provider}}/terranet-base.box",
+        "only": ["terranet-base-aws-builder"]
+      },
+      {
+        "type": "vagrant-cloud",
+        "box_tag": "butja/terranet-base",
+        "access_token": "{{user `atlas_access_token`}}",
+        "version": "{{user `version`}}"
+      }
+    ]
+  ]
+}

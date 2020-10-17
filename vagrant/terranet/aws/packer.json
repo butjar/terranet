@@ -1,0 +1,77 @@
+{
+  "variables": {
+      "atlas_access_token": "{{env `ATLAS_ACCESS_TOKEN`}}",
+      "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+      "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+      "version": null,
+      "_version": null,
+      "aws_source_ami": null,
+      "aws_region": "eu-central-1",
+      "aws_instance_type": "t3.large",
+      "ssh_username": "ubuntu"
+  },
+  "builders": [
+    {
+      "name": "aws-builder",
+      "type": "amazon-ebs",
+      "access_key": "{{user `aws_access_key`}}",
+      "secret_key": "{{user `aws_secret_key`}}",
+      "region": "{{user `aws_region`}}",
+      "source_ami": "{{user `aws_source_ami`}}",
+      "instance_type": "{{user `aws_instance_type`}}",
+      "ssh_username": "{{user `ssh_username`}}",
+      "ami_name": "terranet {{user `version`}}",
+      "ami_groups": "all",
+      "launch_block_device_mappings": [
+        {
+          "device_name": "/dev/sda1",
+          "encrypted": false,
+          "volume_size": 15
+        }
+      ],
+      "tags": {
+        "version": "{{user `version`}}"
+      }
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "sources": ["etc/", "var/"],
+      "destination": "/tmp/"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "cp -r /tmp/etc/* /etc",
+        "rm -rf /tmp/etc",
+        "cp -r /tmp/var/* /var",
+        "rm -rf /tmp/var",
+        "influx -execute 'CREATE DATABASE customerstats'",
+        "influx -execute 'CREATE DATABASE switchstats'",
+        "systemctl restart collectd.service",
+        "systemctl restart influxdb.service",
+        "systemctl restart influxd.service",
+        "systemctl restart grafana-server.service",
+        "pip3 install 'terranet=={{user `version`}}"
+      ],
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'"
+    }
+  ],
+  "post-processors": [
+    [
+      {
+        "name": "vagrant-packager",
+        "type": "vagrant",
+        "output": "build/{{user `_version`}}/package.box"
+      },
+      {
+        "name": "vagrant-cloud-uploader",
+        "type": "vagrant-cloud",
+        "box_tag": "butja/terranet",
+        "access_token": "{{user `atlas_access_token`}}",
+        "version": "{{user `version`}}"
+      }
+    ]
+  ]
+}

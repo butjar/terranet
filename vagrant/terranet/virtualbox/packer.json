@@ -1,0 +1,65 @@
+{
+  "variables": {
+      "atlas_access_token": "{{env `ATLAS_ACCESS_TOKEN`}}",
+      "version": null,
+      "_version": null,
+  },
+  "builders": [
+    {
+      "name": "virtualbox-builder",
+      "type": "vagrant",
+      "communicator": "ssh",
+      "provider": "virtualbox",
+      "source_path": "butja/terranet-base",
+      "box_name": "terranet",
+      "synced_folder": "",
+      "insert_key": "false",
+      "template": "Vagrantfile.tpl",
+      "output_dir": "build/{{user `_version`}}",
+      "output_vagrantfile": "Vagrantfile"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "sources": ["etc/", "var/"],
+      "destination": "/tmp/"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "cp -r /tmp/etc/* /etc",
+        "rm -rf /tmp/etc",
+        "cp -r /tmp/var/* /var",
+        "rm -rf /tmp/var",
+        "influx -execute 'CREATE DATABASE customerstats'",
+        "influx -execute 'CREATE DATABASE switchstats'",
+        "systemctl restart collectd.service",
+        "systemctl restart influxdb.service",
+        "systemctl restart influxd.service",
+        "systemctl restart grafana-server.service",
+        "pip3 install 'terranet=={{user `version`}}"
+      ],
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "apt install --reinstall ca-certificates",
+        "curl -sL https://raw.githubusercontent.com/hashicorp/vagrant/master/keys/vagrant.pub >> /home/vagrant/.ssh/authorized_keys",
+        "chown vagrant:vagrant /home/vagrant/.ssh/authorized_keys",
+        "chmod 600 /home/vagrant/.ssh/authorized_keys"
+      ],
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'"
+    }
+  ],
+  "post-processors": [
+    {
+      "name": "vagrant-cloud-uploader",
+      "type": "vagrant-cloud",
+      "box_tag": "butja/terranet",
+      "access_token": "{{user `atlas_access_token`}}",
+      "version": "{{user `version`}}"
+    }
+  ]
+}
