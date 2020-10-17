@@ -92,7 +92,8 @@ class Terranet(IPNet):
                            self.terranet_routers()))
 
     def distribution_nodes(self):
-        return distribution_nodes_60 + distribution_nodes_5_60
+        return [x for x in self.terranet_routers()
+                    if isinstance(x, DistributionNode)]
 
     def distribution_nodes_60(self):
         return list(filter(lambda x: isinstance(x, DistributionNode60),
