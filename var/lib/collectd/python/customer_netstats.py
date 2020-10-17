@@ -103,7 +103,8 @@ def read(data={}):
             for dispatch_key in DISPATCH_KEYS:
                 if dispatch_key in iface_stats.keys():
                     values = [iface_stats[dispatch_key]]
-                    _dispatch_values(values, dispatch_key, ipv6)
+                    _dispatch_values(values, dispatch_key, ipv6,
+                                     plugin=dispatch_key)
 
 
 collectd.register_config(config)
