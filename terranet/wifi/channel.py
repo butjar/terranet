@@ -1,4 +1,4 @@
-class Channel(object):
+class Channel:
     channel_map = {
         # 2.402 - 2.494 GHz
         1:   {"f0": 2412,
@@ -336,3 +336,9 @@ class Channel(object):
         self.f0 = channel_dict["f0"]
         self.width = channel_dict["width"]
         self.komondor_channel_params = channel_dict["komondor"]
+
+    def __eq__(self, other):
+        return self.num == other.num
+
+    def __lt__(self, other):
+        return self.num < other.num

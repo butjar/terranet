@@ -188,7 +188,7 @@ class FronthaulEmulator(object):
         for ap in access_points:
             self.adjust_station_wifi_config(ap)
 
-        channels = map(lambda x: x.available_channels, access_points)
+        channels = sorted([ ap.available_channels for ap in access_points ])
         channel_combinations = list(itertools.product(*channels))
 
         for channels in channel_combinations:
