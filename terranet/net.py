@@ -3,11 +3,10 @@ from ipmininet.ipnet import IPNet
 from ipmininet.ipnet import IPLink, IPIntf
 from ipmininet.router.config import OpenrRouterConfig
 from .link import TerraLink, TerraIntf
-from .node import TerranetRouter, ClientNode, DistributionNode60, \
-                  DistributionNode5_60, IperfHost, IperfClient, \
-                  IperfServer, WifiNode, WifiAccessPoint, \
-                  WifiStation
-
+from .node import TerranetRouter, ClientNode, DistributionNode, \
+                  DistributionNode60, DistributionNode5_60, \
+                  IperfHost, IperfClient, IperfServer, \
+                  WifiNode, WifiAccessPoint, WifiStation
 from .wifi.fronthaulemulator import FronthaulEmulator
 from .wifi.komondor_config import KomondorSystemConfig
 from .influx.customerstats import CustomerstatsContinuousQueries
@@ -37,16 +36,16 @@ class Terranet(IPNet):
                 net=self,
                 komondor_config_dir=komondor_config_dir)
         self.fronthaulemulator = fronthaulemulator
-        super(Terranet, self).__init__(topo=topo,
-                                       router=router,
-                                       config=config,
-                                       link=link,
-                                       intf=intf,
-                                       switch=switch,
-                                       *args, **kwargs)
+        super().__init__(topo=topo,
+                         router=router,
+                         config=config,
+                         link=link,
+                         intf=intf,
+                         switch=switch,
+                         *args, **kwargs)
 
     def build(self):
-        super(Terranet, self).build()
+        super().build()
         for node in self.wifi_nodes():
             node.register_fronthaulemulator(self.fronthaulemulator)
         if not self.fronthaulemulator.build_komondor():
@@ -59,7 +58,7 @@ class Terranet(IPNet):
         SwitchstatsContinuousQueries.create_cqs()
 
     def start(self):
-        super(Terranet, self).start()
+        super().start()
         self.start_iperf_hosts()
 
     def stop(self):
