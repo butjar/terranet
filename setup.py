@@ -20,7 +20,7 @@ setup(
         'Flask',
         'influxdb',
         'netns',
-        'proxy',
+        'proxy.py',
         'ryu',
         'whichcraft',
     ],
