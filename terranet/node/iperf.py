@@ -20,22 +20,21 @@ class IperfHost(IPHost):
         self.autostart = autostart
         self.autostart_params = autostart_params
 
-    def run(self,
-            bin="iperf3",
-            iperf_args="",
-            bind_address=None,
-            *args, **kwargs):
-
+    def run_iperf(self,
+                  bin="iperf3",
+                  iperf_args="",
+                  bind_address=None,
+                  *args, **kwargs):
         iface = self.intfList()[0]
         if not bind_address:
             self.bind_address = iface.ip6
 
         # Kill current processes
-        self.stop()
+        self.stop_iperf()
         # Implement iperf command in subclass
         pass
 
-    def stop(self):
+    def stop_iperf(self):
         for process, pid in self.pids.items():
             try:
                 os.killpg(pid, signal.SIGHUP)
@@ -49,7 +48,7 @@ class IperfHost(IPHost):
         self.pids = {}
 
     def terminate(self):
-        self.stop()
+        self.stop_iperf()
         super().terminate()
 
 
@@ -74,13 +73,13 @@ class IperfClient(IperfHost):
         else:
             self._host = host
 
-    def run(self,
-            bin="iperf3",
-            iperf_args="-6 -t0 -i10 -u -b0 -l1400 -Z",
-            *args, **kwargs):
-        super().run(bin=bin,
-                    iperf_args=iperf_args,
-                    *args, **kwargs)
+    def run_iperf(self,
+                  bin="iperf3",
+                  iperf_args="-6 -t0 -i10 -u -b0 -l1400 -Z",
+                  *args, **kwargs):
+        super().run_iperf(bin=bin,
+                          iperf_args=iperf_args,
+                          *args, **kwargs)
 
         if not self.host:
             raise ValueError("""Host attribute must be set before running
@@ -112,6 +111,12 @@ class IperfClient(IperfHost):
         self.pids.update({"iperf": p.pid})
         return p
 
+    def stop_iperf(self):
+        super().stop_iperf()
+        if self.netstats_log:
+            os.remove(self.netstats_log)
+            self.netstats_log = None
+
 
 class IperfReverseClient(IperfClient):
     def __init__(self, name,
@@ -119,13 +124,13 @@ class IperfReverseClient(IperfClient):
         super().__init__(name,
                          *args, **kwargs)
 
-    def run(self,
-            bin="iperf3",
-            iperf_args="-6 -R -t0 -i10 -u -b0 -l1400 -Z",
-            *args, **kwargs):
-        super().run(bin=bin,
-                    iperf_args=iperf_args,
-                    *args, **kwargs)
+    def run_iperf(self,
+                  bin="iperf3",
+                  iperf_args="-6 -R -t0 -i10 -u -b0 -l1400 -Z",
+                  *args, **kwargs):
+        super().run_iperf(bin=bin,
+                          iperf_args=iperf_args,
+                          *args, **kwargs)
 
 
 class IperfServer(IperfHost):
@@ -133,13 +138,13 @@ class IperfServer(IperfHost):
         super().__init__(name,
                          *args, **kwargs)
 
-    def run(self,
-            bin="iperf3",
-            iperf_args="-s",
-            *args, **kwargs):
-        super().run(bin=bin,
-                    iperf_args=iperf_args,
-                    *args, **kwargs)
+    def run_iperf(self,
+                  bin="iperf3",
+                  iperf_args="-s",
+                  *args, **kwargs):
+        super().run_iperf(bin=bin,
+                          iperf_args=iperf_args,
+                          *args, **kwargs)
 
         # --logfile option requires iperf3 >= 3.1
         cmd = ("{bin} {iperf_args} "

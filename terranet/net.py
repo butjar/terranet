@@ -79,9 +79,9 @@ class Terranet(IPNet):
         for iperf_host in self.get_iperf_hosts():
             if iperf_host.autostart:
                 if iperf_host.autostart_params:
-                    iperf_host.run(iperf_host.autostart_params)
+                    iperf_host.run_iperf(iperf_host.autostart_params)
                 else:
-                    iperf_host.run()
+                    iperf_host.run_iperf()
 
     def terranet_routers(self):
         return list(filter(lambda x: isinstance(x, TerranetRouter),
