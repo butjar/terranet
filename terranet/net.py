@@ -1,12 +1,12 @@
 from mininet.node import OVSSwitch
 from ipmininet.ipnet import IPNet
 from ipmininet.ipnet import IPLink, IPIntf
+from ipmininet.router.config import OpenrRouterConfig
 from .link import TerraLink, TerraIntf
 from .node import TerranetRouter, ClientNode, DistributionNode60, \
                   DistributionNode5_60, IperfHost, IperfClient, \
                   IperfServer, WifiNode, WifiAccessPoint, \
                   WifiStation
-from .router_config import OpenrConfig
 
 from .wifi.fronthaulemulator import FronthaulEmulator
 from .wifi.komondor_config import KomondorSystemConfig
@@ -21,7 +21,7 @@ class Terranet(IPNet):
                  fronthaulemulator=None,
                  komondor_config_dir=None,
                  router=DistributionNode60,
-                 config=OpenrConfig,
+                 config=OpenrRouterConfig,
                  link=IPLink,
                  intf=IPIntf,
                  switch=OVSSwitch,

@@ -5,7 +5,7 @@ from ipaddress import IPv4Network, IPv6Network
 
 from ipmininet.link import IPLink
 from ipmininet.iptopo import IPTopo
-from ipmininet.router.config import OpenrConfig
+from ipmininet.router.config import OpenrRouterConfig
 
 from ..router_config import TerranetRouterDescription
 from ..node import TerranetRouter, ClientNode, \
@@ -33,7 +33,7 @@ class Terratopo(IPTopo):
     def addRouter(self, name,
                   cls=TerranetRouter,
                   routerDescription=TerranetRouterDescription,
-                  config=OpenrConfig,
+                  config=OpenrRouterConfig,
                   **kwargs):
         return routerDescription(self.addNode(str(name),
                                               isRouter=True,
