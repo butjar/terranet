@@ -28,6 +28,7 @@ setup(
     package_data={
         'terranet': ['topo/.komondor/**/*']
     },
-    scripts=['examples/run_virtual_fiber_net.py',
-             'examples/run_hybrid_backup_net.py'],
+    scripts=['terranet/examples/run_virtual_fiber_net.py',
+             'terranet/examples/run_hybrid_backup_net.py',
+             'terranet/simulation/simulate_hybrid_handover.py'],
 )
