@@ -32,21 +32,21 @@ if __name__ == '__main__':
         dn_c = net['dn_c']
         cn_c1 = net['cn_c1']
         link_dn_c_cn_c1 = net.linksBetween(dn_c, cn_c1)[0]
-        time.sleep(60)
+        time.sleep(180)
 
         info('{}: Simulating link failure DN_A <=> CN_A1\n'
              .format(TerranetSimulator.time_ns()))
         link_dn_a_cn_a1.intf2.ifconfig('down')
-        time.sleep(120)
+        time.sleep(180)
 
         info('{}: Simulating link failure DN_B <=> CN_B1 '
              'and DN_C <=> CN_C1\n'
              .format(TerranetSimulator.time_ns()))
         link_dn_b_cn_b1.intf2.ifconfig('down')
         link_dn_c_cn_c1.intf2.ifconfig('down')
-        time.sleep(120)
+        time.sleep(180)
 
         info('{}: Simulating link failure recovery DN_A <=> CN_A1\n'
              .format(TerranetSimulator.time_ns()))
         link_dn_a_cn_a1.intf2.ifconfig('up')
-        time.sleep(60)
+        time.sleep(180)
