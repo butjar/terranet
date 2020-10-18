@@ -229,7 +229,7 @@ class TerranetSimulator():
         os.makedirs(log_archive, exist_ok=True)
         self.archive_dirs('/var/tmp/log/', sub_dirs='log/openr')
         log_files = [*glob.glob('/tmp/*.log'),
-                     *glob.glob('/var/log/iperf_*.log')
+                     *glob.glob('/var/log/iperf_*.log')]
         for log in log_files:
             self.archive_file(log, sub_dirs='log')
 
