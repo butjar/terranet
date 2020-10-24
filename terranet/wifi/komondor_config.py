@@ -28,7 +28,7 @@ class KomondorBaseConfig(ConfigParser):
     def __init__(self,
                  cfg_file=None,
                  **kwargs):
-        super(KomondorBaseConfig, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.cfg_file = cfg_file
         if self.cfg_file:
             self.read(cfg_file)
@@ -88,7 +88,7 @@ class KomondorConfig(KomondorBaseConfig):
 class KomondorConfigSection(collections.OrderedDict):
     def __init__(self, name, *args, **kwargs):
         self.name = name
-        super(KomondorConfigSection, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class KomondorSystemConfig(KomondorConfigSection):
@@ -117,7 +117,7 @@ class KomondorSystemConfig(KomondorConfigSection):
             ("capture_effect_model", 1)])
         config = defaults
         config.update(kwargs)
-        super(KomondorSystemConfig, self).__init__(name, *args, **config)
+        super().__init__(name, *args, **config)
 
 
 class KomondorNodeConfig(KomondorConfigSection):
@@ -155,9 +155,9 @@ class KomondorNodeConfig(KomondorConfigSection):
             name = "Node_AP_{}".format(name)
         else:
             name = "Node_STA_{}".format(name)
-        super(KomondorNodeConfig, self).__init__(name, *args, **config)
+        super().__init__(name, *args, **config)
 
 
 class KomondorResult(KomondorBaseConfig):
     def __init__(self, cfg_file=None):
-        super(KomondorResult, self).__init__(cfg_file=cfg_file)
+        super().__init__(cfg_file=cfg_file)
