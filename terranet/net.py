@@ -54,6 +54,8 @@ class Terranet(IPNet):
         if self.fronthaulemulator:
             self.fronthaulemulator.apply_wifi_config()
 
+        CustomerstatsContinuousQueries.drop_cqs()
+        SwitchstatsContinuousQueries.drop_cqs()
         CustomerstatsContinuousQueries.create_cqs()
         SwitchstatsContinuousQueries.create_cqs()
 
