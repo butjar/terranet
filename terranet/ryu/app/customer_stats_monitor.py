@@ -93,14 +93,14 @@ class CustomerStatsMonitor(app_manager.RyuApp):
         body = ev.msg.body
 
         for stat in [flow for flow in body if flow.priority > 1]:
-            self.logger.info('CustomerStatsMonitor: Received stats: '
-                             'table_id {}, '
-                             'match {}, '
-                             'packet_count {}, '
-                             'byte_count {}.'.format(stat.table_id,
-                                                     stat.match,
-                                                     stat.packet_count,
-                                                     stat.byte_count))
+            self.logger.debug('CustomerStatsMonitor: Received stats: '
+                              'table_id {}, '
+                              'match {}, '
+                              'packet_count {}, '
+                              'byte_count {}.'.format(stat.table_id,
+                                                      stat.match,
+                                                      stat.packet_count,
+                                                      stat.byte_count))
 
             if stat.match.get('ipv6_src'):
                 ipv6 = stat.match['ipv6_src']
