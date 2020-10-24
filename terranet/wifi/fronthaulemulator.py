@@ -264,11 +264,8 @@ class FronthaulEmulator(object):
                      if f.endswith(".cfg")]
         pool = multiprocessing.Pool()
 
-        komondor_args = {"time": 100,
-                         "seed": 1000}
         f = partial(run_komondor_worker,
-                    output_dir=self.komondor_output_dir,
-                    komondor_args=komondor_args)
+                    output_dir=self.komondor_output_dir)
         pool.map(f, cfg_files)
 
     def delete_cache(self):
