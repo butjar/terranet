@@ -45,7 +45,7 @@ class IperfHost(IPHost):
                         {}""".format(process,
                                      pid,
                                      e))
-        self.pids = {}
+        self.pids.pop('iperf', None)
 
     def terminate(self):
         self.stop_iperf()
@@ -116,6 +116,7 @@ class IperfClient(IperfHost):
         if self.netstats_log:
             os.remove(self.netstats_log)
             self.netstats_log = None
+        self.pids.pop('netstats_logger', None)
 
 
 class IperfReverseClient(IperfClient):
