@@ -75,7 +75,7 @@ class IperfClient(IperfHost):
 
     def run_iperf(self,
                   bin="iperf3",
-                  iperf_args="-6 -t0 -i10 -u -b0 -l1400 -Z",
+                  iperf_args="-6 -t0 -i10 -l1400 -Z",
                   *args, **kwargs):
         super().run_iperf(bin=bin,
                           iperf_args=iperf_args,
@@ -127,7 +127,7 @@ class IperfReverseClient(IperfClient):
 
     def run_iperf(self,
                   bin="iperf3",
-                  iperf_args="-6 -R -t0 -i10 -u -b0 -l1400 -Z",
+                  iperf_args="-6 -R -t0 -i10 -l1400 -Z",
                   *args, **kwargs):
         super().run_iperf(bin=bin,
                           iperf_args=iperf_args,
