@@ -20,15 +20,38 @@ from ..wifi.komondor_config import KomondorSystemConfig
 class Terratopo(IPTopo):
     def __init__(self,
                  komondor_system_config=None,
+                 create_komondor_dirs=True,
                  *args, **kwargs):
         if not komondor_system_config:
             self.komondor_system_config = KomondorSystemConfig()
-        super(Terratopo, self).__init__(*args, **kwargs)
+        self.create_komondor_dirs = create_komondor_dirs
+        super().__init__(*args, **kwargs)
+
+    def build(self, *args, **kwargs):
+        if self.create_komondor_dirs:
+            self._create_komondor_dirs()
+
+        super().build(*args, **kwargs)
+
 
     def komondor_config_dir(self):
         topo_dir = os.path.dirname(os.path.abspath(__file__))
         return os.path.join(topo_dir, '.komondor',
                             str(self.__class__.__name__))
+
+    def _create_komondor_dirs(self):
+        komondor_input_dir = os.path.join(self.komondor_config_dir(),
+                                          'input')
+        komondor_output_dir = os.path.join(self.komondor_config_dir(),
+                                          'output')
+        if not os.path.isdir(self.komondor_config_dir()):
+            os.makedirs(self.komondor_config_dir(), exist_ok=True)
+
+        if not os.path.isdir(komondor_input_dir):
+            os.makedirs(komondor_input_dir, exist_ok=True)
+
+        if not os.path.isdir(komondor_output_dir):
+            os.makedirs(komondor_output_dir, exist_ok=True)
 
     def addRouter(self, name,
                   cls=TerranetRouter,

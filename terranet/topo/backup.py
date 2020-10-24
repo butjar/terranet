@@ -160,3 +160,5 @@ class HybridBackupTerragraphTopo(Terratopo):
                      'fd00:0:0:8301:8003::0/80'),
             autostart_client=True
         )
+
+        super().build(*args, **kwargs)
