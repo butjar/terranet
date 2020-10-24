@@ -30,6 +30,7 @@ class CustomerFlowPipeline(MacLearningPipeline):
     DN_TABLE = 3
     FIRST_CUSTOMER_TABLE = 4
     NEXT_TABLE = FIRST_CUSTOMER_TABLE
+    CUSTOMER_FLOW_IDLE_TIMEOUT = 10
 
     _EVENTS = [
         EventCustomerFlowAdded,
@@ -266,6 +267,7 @@ class CustomerFlowPipeline(MacLearningPipeline):
         buffer_id = msg.buffer_id
         pkt = packet.Packet(msg.data)
         pkt_ipv6 = pkt.get_protocols(ipv6.ipv6)[0]
+        idle_timeout = self.__class__.CUSTOMER_FLOW_IDLE_TIMEOUT
 
         src_mac_table_id = self.__class__.SRC_MAC_TABLE
         inst = [ofp_parser.OFPInstructionGotoTable(src_mac_table_id)]
@@ -286,7 +288,7 @@ class CustomerFlowPipeline(MacLearningPipeline):
             mod = ofp_parser.OFPFlowMod(datapath=datapath,
                                         table_id=table_id,
                                         match=dst_match,
-                                        idle_timeout=10,
+                                        idle_timeout=idle_timeout,
                                         instructions=inst,
                                         flags=ofp.OFPFF_SEND_FLOW_REM)
             datapath.send_msg(mod)
