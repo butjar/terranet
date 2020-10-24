@@ -151,8 +151,7 @@ class FronthaulEmulator(object):
                     delay_value = result.get('delay')
                     if delay_value in ['nan', '-nan']:
                         delay_value = '0'
-                    else:
-                        delay = '{}ms'.format(round(float(delay_value)))
+                    delay = '{}ms'.format(round(float(delay_value)))
                     link.intf1.config(bw=bw, delay=delay, use_tbf=True)
                     link.intf2.config(bw=bw, delay=delay, use_tbf=True)
 
