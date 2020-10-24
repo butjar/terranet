@@ -12,10 +12,8 @@ from ..event import KomondorConfigChangeEvent, ChannelSwitchEvent, \
     FronthaulEmulatorRegistrationEvent, \
     FronthaulEmulatorCancelRegistrationEvent
 from .komondor import run_komondor_worker
-from .komondor_config import KomondorConfig, \
-                             KomondorResult, \
-                             KomondorSystemConfig, \
-                             KomondorNodeConfig
+from .komondor_config import KomondorConfig, KomondorSystemConfig, \
+                             read_komondor_configs, read_komondor_results
 
 
 class FronthaulEmulator(object):
@@ -32,8 +30,8 @@ class FronthaulEmulator(object):
         self.net = net
         self.komondor_executable = komondor_executable
         self.komondor_config_dir = os.path.abspath(komondor_config_dir)
-        self.komondor_input_dir = "{}/input".format(self.komondor_config_dir)
-        self.komondor_output_dir = "{}/output".format(self.komondor_config_dir)
+        self.komondor_input_dir = f'{self.komondor_config_dir}/input'
+        self.komondor_output_dir = f'{self.komondor_config_dir}/output'
         if not komondor_system_cfg:
             komondor_system_cfg = KomondorSystemConfig()
         self.komondor_system_cfg = komondor_system_cfg
@@ -97,24 +95,6 @@ class FronthaulEmulator(object):
         evt.result = True
         evt.message = "OK\n"
         evt.set()
-
-    def read_komondor_files(self, directory, cls):
-        config_dict = collections.OrderedDict()
-        files = list(filter(lambda f: f.endswith(".cfg"),
-                            sorted(os.listdir(directory))))
-        for cfg_file in files:
-            path = os.path.join(directory, cfg_file)
-            cfg = cls(path)
-            config_dict[cfg_file] = cfg
-        return config_dict
-
-    def read_komondor_configs(self):
-        return self.read_komondor_files(self.komondor_input_dir,
-                                        KomondorConfig)
-
-    def read_komondor_results(self):
-        return self.read_komondor_files(self.komondor_output_dir,
-                                        KomondorResult)
 
     def apply_wifi_config(self):
         info("FronthaulEmulator: Trying to apply new network config.\n")
@@ -194,13 +174,14 @@ class FronthaulEmulator(object):
             config = self.__build_channel_config(channels)
             configs.append(config)
 
-        cached_config_dict = self.read_komondor_configs()
+        cached_config_dict = read_komondor_configs(self.komondor_input_dir)
         cached_configs = list(cached_config_dict.values())
         if not use_cache or configs != cached_configs:
             info("Not using cached komondor config.\n")
             self.delete_cache()
             self.write_komondor_configs(configs)
-            self.komondor_configs = self.read_komondor_configs()
+            self.komondor_configs = read_komondor_configs(
+                self.komondor_input_dir)
             info("Simulating komondor configurations. "
                  "This might take a while.\n")
             import time
@@ -213,7 +194,8 @@ class FronthaulEmulator(object):
         else:
             info("Using cached komondor config.\n")
             self.komondor_configs = cached_config_dict
-        self.komondor_results = self.read_komondor_results()
+        self.komondor_results = read_komondor_results(
+            self.komondor_output_dir)
         return self
 
     def __build_channel_config(self, channels):

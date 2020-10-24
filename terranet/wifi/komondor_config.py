@@ -1,6 +1,27 @@
+import os
 import itertools
 import collections
 from configparser import ConfigParser
+
+from .channel import Channel
+
+
+def _read_komondor_files(directory, cls):
+    config_dict = collections.OrderedDict()
+    files = [f for f in sorted(os.listdir(directory)) if f.endswith(".cfg")]
+    for cfg_file in files:
+        path = os.path.join(directory, cfg_file)
+        cfg = cls(path)
+        config_dict[cfg_file] = cfg
+    return config_dict
+
+
+def read_komondor_configs(dir):
+    return _read_komondor_files(dir, KomondorConfig)
+
+
+def read_komondor_results(dir):
+    return _read_komondor_files(dir, KomondorResult)
 
 
 class KomondorBaseConfig(ConfigParser):
