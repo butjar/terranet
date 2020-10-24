@@ -22,6 +22,7 @@ setup(
         'netns',
         'numpy',
         'proxy.py',
+        'requests',
         'ryu',
         'whichcraft',
     ],
@@ -32,5 +33,6 @@ setup(
     scripts=['terranet/examples/run_virtual_fiber_net.py',
              'terranet/examples/run_hybrid_backup_net.py',
              'terranet/simulation/simulate_hybrid_handover.py',
-             'terranet/simulation/simulate_customer_arrivals.py'],
+             'terranet/simulation/simulate_customer_arrivals.py',
+             'terranet/simulation/simulate_channel_oracle.py'],
 )

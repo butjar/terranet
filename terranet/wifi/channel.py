@@ -330,6 +330,15 @@ class Channel:
                            "max_channel_allowed": 43,
                            "central_freq":         5.865}}}
 
+    @classmethod
+    def channel_num(cls, min_channel_allowed, max_channel_allowed):
+        for ch, val in cls.channel_map.items():
+            k_conf = val['komondor']
+            if k_conf['min_channel_allowed'] == int(min_channel_allowed) and \
+               k_conf['max_channel_allowed'] == int(max_channel_allowed):
+                   return ch
+        return None
+
     def __init__(self, channel_num):
         self.num = channel_num
         channel_dict = Channel.channel_map[channel_num]

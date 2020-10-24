@@ -38,13 +38,10 @@ class KomondorBaseConfig(ConfigParser):
         return optionstr
 
     def sections_by_value(self, key, value):
-        sections = list(filter(lambda x: key in self[x] and self[x][key] == value,
-                               self.sections()))
-        return map(lambda x: self[x], sections)
+        return [self[x] for x in self.sections() if self[x].get(key) == value]
 
     def nodes(self):
-        sections = list(filter(lambda x: not x == "System",
-                               self.sections()))
+        return [self[x] for x in self.sections() if not x == 'System']
 
 
 class KomondorConfig(KomondorBaseConfig):
@@ -83,6 +80,21 @@ class KomondorConfig(KomondorBaseConfig):
 
     def sort_west_to_east(self, nodes):
         return sorted(nodes, key=lambda x: x["x"])
+
+    def ap_channel_configurations(self):
+        channel_config = []
+        for ap in self.access_points():
+            wlan_code = ap['wlan_code']
+            min_channel_allowed = ap['min_channel_allowed']
+            max_channel_allowed = ap['max_channel_allowed']
+            ch = Channel.channel_num(min_channel_allowed, max_channel_allowed)
+            channel_config.append({'name': ap.name,
+                                   'wlan_code': wlan_code,
+                                   'channel': ch,
+                                   'min_channel_allowed': min_channel_allowed,
+                                   'max_channel_allowed': max_channel_allowed})
+        return channel_config
+
 
 
 class KomondorConfigSection(collections.OrderedDict):
@@ -161,3 +173,15 @@ class KomondorNodeConfig(KomondorConfigSection):
 class KomondorResult(KomondorBaseConfig):
     def __init__(self, cfg_file=None):
         super().__init__(cfg_file=cfg_file)
+
+    def nodes_by_wlan(self, wlan):
+        return self.sections_by_value('wlan', wlan)
+
+    def total_throughput(self):
+        return sum([int(self[x]['throughput']) for x in self.sections()])
+
+    def wlan_throughput(self, wlan):
+        return sum([int(x['throughput']) for x in self.nodes_by_wlan(wlan)])
+
+    def wlans(self):
+        return list(sorted(set([self[x]['wlan'] for x in self.sections()])))
