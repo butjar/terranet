@@ -9,6 +9,9 @@ class CustomerstatsContinuousQueries:
     DEFAULT_INTERVAL = 10
     CONTINUOUS_QUERIES = ['rx_throughputs',
                           'sum_rx_throughputs',
+                          'dn1_rx_throughputs',
+                          'dn2_rx_throughputs',
+                          'dn3_rx_throughputs',
                           'janes_customer_count',
                           'janes_pow2_sum_throughputs',
                           'janes_sum_pow2_throughputs',
@@ -27,10 +30,16 @@ class CustomerstatsContinuousQueries:
         cqs = []
         cqs.append(cls.create_rxthroughputs_cq(influx, interval=interval,
                                                database=database))
-        cqs.append(cls.create_customer_count_cq(influx, interval=interval,
-                                                database=database))
         cqs.append(cls.create_sum_rxthroughputs_cq(influx, interval=interval,
                                                    database=database))
+        for dn_subnet_prefix in [81, 82, 83]:
+            cqs.append(cls.create_dn_rxthroughputs_cq(
+                influx,
+                interval=interval,
+                dn_subnet_prefix=dn_subnet_prefix,
+                database=database))
+        cqs.append(cls.create_customer_count_cq(influx, interval=interval,
+                                                database=database))
         cqs.append(cls.create_pow2_sum_throughputs_cq(influx,
                                                       interval=interval,
                                                       database=database))
@@ -82,6 +91,29 @@ class CustomerstatsContinuousQueries:
             'FROM "rx_throughputs" '
             'GROUP BY time({interval}s)'
         ).format(interval=interval)
+        return client.create_continuous_query(cq_name, select,
+                                              database=database)
+
+    @classmethod
+    def create_dn_rxthroughputs_cq(cls, client,
+                                    cq_name=None,
+                                    dn_subnet_prefix=81,
+                                    interval=DEFAULT_INTERVAL,
+                                    database=DATABASE):
+        cqs = []
+        dn_id = int('0x{}'.format(dn_subnet_prefix), 16) - 0x80
+        if not cq_name:
+            cq_name = 'dn{}_rx_throughputs'.format(dn_id)
+        select = (
+            'SELECT sum("value") '
+            'AS "dn{dn_id}" '
+            'INTO "dn_rx_throughputs" '
+            'FROM "rx_throughputs" '
+            'WHERE "host" =~ /fd00::{subnet_prefix}.*/'
+            'GROUP BY time({interval}s)'
+        ).format(dn_id=dn_id,
+                 subnet_prefix=dn_subnet_prefix,
+                 interval=interval)
         return client.create_continuous_query(cq_name, select,
                                               database=database)
 
