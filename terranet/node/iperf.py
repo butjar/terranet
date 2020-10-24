@@ -47,6 +47,13 @@ class IperfHost(IPHost):
                                      e))
         self.pids.pop('iperf', None)
 
+    def toggle_iperf(self, *args, **kwargs):
+        if self.pids.get('iperf'):
+            self.stop_iperf()
+        else:
+            self.run_iperf(*args, **kwargs)
+        return self.pids.get('iperf')
+
     def terminate(self):
         self.stop_iperf()
         super().terminate()
