@@ -7,7 +7,7 @@ from .node import TerranetRouter, ClientNode, DistributionNode, \
                   DistributionNode60, DistributionNode5_60, \
                   IperfHost, IperfClient, IperfServer, \
                   WifiNode, WifiAccessPoint, WifiStation
-from .wifi.fronthaulemulator import FronthaulEmulator
+from .wifi.sub6ghz_emulator import Sub6GhzEmulator
 from .wifi.komondor_config import KomondorSystemConfig
 from .influx.customerstats import CustomerstatsContinuousQueries
 from .influx.switchstats import SwitchstatsContinuousQueries
@@ -17,7 +17,7 @@ class Terranet(IPNet):
     def __init__(self,
                  topo=None,
                  komondor_system_cfg=None,
-                 fronthaulemulator=None,
+                 sub6ghz_emulator=None,
                  komondor_config_dir=None,
                  router=DistributionNode60,
                  config=OpenrRouterConfig,
@@ -31,11 +31,11 @@ class Terranet(IPNet):
         if not komondor_config_dir:
             if topo:
                 komondor_config_dir = topo.komondor_config_dir()
-        if not fronthaulemulator:
-            fronthaulemulator = FronthaulEmulator(
+        if not sub6ghz_emulator:
+            sub6ghz_emulator = Sub6GhzEmulator(
                 net=self,
                 komondor_config_dir=komondor_config_dir)
-        self.fronthaulemulator = fronthaulemulator
+        self.sub6ghz_emulator = sub6ghz_emulator
         super().__init__(topo=topo,
                          router=router,
                          config=config,
@@ -47,12 +47,12 @@ class Terranet(IPNet):
     def build(self):
         super().build()
         for node in self.wifi_nodes():
-            node.register_fronthaulemulator(self.fronthaulemulator)
-        if not self.fronthaulemulator.build_komondor():
-            self.fronthaulemulator = None
+            node.register_sub6ghz_emulator(self.sub6ghz_emulator)
+        if not self.sub6ghz_emulator.build_komondor():
+            self.sub6ghz_emulator = None
 
-        if self.fronthaulemulator:
-            self.fronthaulemulator.apply_wifi_config()
+        if self.sub6ghz_emulator:
+            self.sub6ghz_emulator.apply_wifi_config()
 
         CustomerstatsContinuousQueries.drop_cqs()
         SwitchstatsContinuousQueries.drop_cqs()

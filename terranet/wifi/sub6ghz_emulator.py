@@ -9,14 +9,14 @@ from configparser import ConfigParser
 from mininet.log import info, warn
 
 from ..event import KomondorConfigChangeEvent, ChannelSwitchEvent, \
-    FronthaulEmulatorRegistrationEvent, \
-    FronthaulEmulatorCancelRegistrationEvent
+    Sub6GhzEmulatorRegistrationEvent, \
+    Sub6GhzEmulatorCancelRegistrationEvent
 from .komondor import run_komondor_worker
 from .komondor_config import KomondorConfig, KomondorSystemConfig, \
                              read_komondor_configs, read_komondor_results
 
 
-class FronthaulEmulator(object):
+class Sub6GhzEmulator(object):
     def __init__(self,
                  net=None,
                  komondor_executable=None,
@@ -46,21 +46,21 @@ class FronthaulEmulator(object):
             self.handle_komondor_config_change(evt)
         elif isinstance(evt, ChannelSwitchEvent):
             self.handle_channel_switch(evt)
-        elif isinstance(evt, FronthaulEmulatorRegistrationEvent):
+        elif isinstance(evt, Sub6GhzEmulatorRegistrationEvent):
             self.handle_registration(evt)
-        elif isinstance(evt, FronthaulEmulatorCancelRegistrationEvent):
+        elif isinstance(evt, Sub6GhzEmulatorCancelRegistrationEvent):
             self.handle_cancel_registration(evt)
 
     def handle_komondor_config_change(self, evt):
-        info("FronthaulEmulator: Changing config of node {}.\n"
+        info("Sub6GhzEmulator: Changing config of node {}.\n"
              .format(evt.node.name))
-        info("FronthaulEmulator: New config {}\n".format(evt.update))
+        info("Sub6GhzEmulator: New config {}\n".format(evt.update))
         evt.result = True
         evt.message = "OK\n"
         evt.set()
 
     def handle_channel_switch(self, evt):
-        info("FronthaulEmulator: Node {} triggered channel switch.\n"
+        info("Sub6GhzEmulator: Node {} triggered channel switch.\n"
              .format(evt.node.name))
         ap = evt.node
         client_nodes = ap.connected_stations()
@@ -72,7 +72,7 @@ class FronthaulEmulator(object):
                           .format(self.current_komondor_file)
             evt.set()
         except RuntimeError as err:
-            error_message = """FronthaulEmulator: Error {}
+            error_message = """Sub6GhzEmulator: Error {}
                                Rolling back to previos config: {}.\n"""\
                             .format(err, self.current_komondor_file)
             warn(error_message)
@@ -84,20 +84,20 @@ class FronthaulEmulator(object):
             evt.set()
 
     def handle_registration(self, evt):
-        info("FronthaulEmulator: Registering node {}\n".format(evt.node.name))
+        info("Sub6GhzEmulator: Registering node {}\n".format(evt.node.name))
         evt.result = True
         evt.message = "OK\n"
         evt.set()
 
     def handle_cancel_registration(self, evt):
-        info("FronthaulEmulator: Unregistering node {}\n"
+        info("Sub6GhzEmulator: Unregistering node {}\n"
              .format(evt.node.name))
         evt.result = True
         evt.message = "OK\n"
         evt.set()
 
     def apply_wifi_config(self):
-        info("FronthaulEmulator: Trying to apply new network config.\n")
+        info("Sub6GhzEmulator: Trying to apply new network config.\n")
         new_config = self.wifi_config()
         config_tuple = self.find_kommondor_config(new_config)
         if not config_tuple:
@@ -110,10 +110,10 @@ class FronthaulEmulator(object):
         self.current_komondor_file = file_name
         self.current_komondor_config = self.komondor_configs[file_name]
         self.current_komondor_result = self.komondor_results[file_name]
-        info('FronthaulEmulator: Trying to apply new config file {}.\n'
+        info('Sub6GhzEmulator: Trying to apply new config file {}.\n'
              .format(file_name))
         self.apply_results()
-        info("FronthaulEmulator: Network config {} successfully applied.\n"
+        info("Sub6GhzEmulator: Network config {} successfully applied.\n"
              .format(config.cfg_file))
 
     def apply_results(self):

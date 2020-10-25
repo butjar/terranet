@@ -9,8 +9,8 @@ from ..link import WifiLink
 from ..config_api import ConfigAPI
 from ..proxy import NamespaceProxy
 from ..event import KomondorConfigChangeEvent, ChannelSwitchEvent, \
-        FronthaulEmulatorRegistrationEvent, \
-        FronthaulEmulatorCancelRegistrationEvent
+        Sub6GhzEmulatorRegistrationEvent, \
+        Sub6GhzEmulatorCancelRegistrationEvent
 
 from .router import TerranetRouter
 
@@ -45,28 +45,28 @@ class WifiNode(TerranetRouter):
     def update_komondor_config(self, config_dict):
         self._komondor_config.update(config_dict)
         evt = KomondorConfigChangeEvent(self, config_dict)
-        self.notify_fronthaulemulator(evt)
+        self.notify_sub6ghz_emulator(evt)
         return (evt.result, evt.message)
 
-    def register_fronthaulemulator(self, fronthaulemulator):
-        self.fronthaulemulator = fronthaulemulator
-        evt = FronthaulEmulatorRegistrationEvent(self)
-        self.notify_fronthaulemulator(evt)
+    def register_sub6ghz_emulator(self, emulator):
+        self.sub6ghz_emulator = emulator
+        evt = Sub6GhzEmulatorRegistrationEvent(self)
+        self.notify_sub6ghz_emulator(evt)
         return (evt.result, evt.message)
 
-    def unregister_fronthaulemulator(self):
-        self.fronthaulemulator = None
-        evt = FronthaulEmulatorCancelRegistrationEvent(self)
-        self.notify_fronthaulemulator(evt)
+    def unregister_sub6ghz_emulator(self):
+        self.sub6ghz_emulator = None
+        evt = Sub6GhzEmulatorCancelRegistrationEvent(self)
+        self.notify_sub6ghz_emulator(evt)
         return (evt.result, evt.message)
 
     def clear_changed(self):
         self.has_changed = False
 
-    def notify_fronthaulemulator(self, evt, wait=True):
+    def notify_sub6ghz_emulator(self, evt, wait=True):
         self.has_changed = True
-        if self.fronthaulemulator:
-            self.fronthaulemulator.update(evt)
+        if self.sub6ghz_emulator:
+            self.sub6ghz_emulator.update(evt)
         if wait:
             evt.wait()
         self.clear_changed()
@@ -76,7 +76,7 @@ class WifiAccessPoint(WifiNode):
     def __init__(self, name, ssid,
                  available_channels=[Channel(32)],
                  primary_channel=None,
-                 fronthaulemulator=None,
+                 sub6ghz_emulator=None,
                  komondor_args={},
                  *args, **kwargs):
         komondor_args.update({"type": 0})
@@ -87,7 +87,7 @@ class WifiAccessPoint(WifiNode):
         komondor_args.update({"wlan_code": ssid,
                               "primary_channel": primary_channel})
         komondor_args.update(channel_config)
-        self.fronthaulemulator = fronthaulemulator
+        self.sub6ghz_emulator = sub6ghz_emulator
         super().__init__(name,
                          komondor_args=komondor_args,
                          *args, **kwargs)
@@ -157,7 +157,7 @@ class ConfigurableWifiAccessPoint(WifiAccessPoint):
         evt = ChannelSwitchEvent(self,
                                  old_channel_cfg,
                                  new_channel_cfg)
-        self.notify_fronthaulemulator(evt)
+        self.notify_sub6ghz_emulator(evt)
         return (evt.result, evt.message)
 
     def terminate(self):

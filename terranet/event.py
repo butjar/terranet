@@ -43,13 +43,13 @@ class ChannelSwitchEvent(TerranetEvent):
         super().__init__()
 
 
-class FronthaulEmulatorRegistrationEvent(TerranetEvent):
+class Sub6GhzEmulatorRegistrationEvent(TerranetEvent):
     def __init__(self, node):
         self.node = node
         super().__init__()
 
 
-class FronthaulEmulatorCancelRegistrationEvent(TerranetEvent):
+class Sub6GhzEmulatorCancelRegistrationEvent(TerranetEvent):
     def __init__(self, node):
         self.node = node
         super().__init__()
