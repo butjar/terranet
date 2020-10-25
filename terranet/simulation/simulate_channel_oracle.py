@@ -40,3 +40,4 @@ if __name__ == '__main__':
     with TerranetSimulator('channel_oracle_simulation', net, clean_after=False) as net:
         for i in range(0, arrivals):
             toogle_customer_arrival(net, waits[i], customer_events[i])
+        time.sleep(90)
