@@ -1,9 +1,11 @@
+import os
 import time
 import random
 import numpy as np
 
 from mininet.log import info
 
+import terranet.ryu.app as ryu_app_module
 from terranet.topo import HybridVirtualFiberTopo
 from terranet.net import Terranet
 from terranet.controller import RyuManager
@@ -26,12 +28,14 @@ if __name__ == '__main__':
     topo = HybridVirtualFiberTopo()
     net = Terranet(topo=topo,
                    build=False)
-    module_path = 'terranet.ryu.app'
     apps = ('customer_flow_pipeline',
             'customer_stats_monitor',
             'channel_assignment_oracle')
-    modules = [ '.'.join([module_path, x]) for x in apps ]
-    ryu_manager = RyuManager('ryu-manager', modules=modules)
+    modules = [ '.'.join(['terranet.ryu.app', x]) for x in apps ]
+    config_file =  os.path.join(os.path.dirname(ryu_app_module.__file__),
+                                'cfg/channel_oracle.conf')
+    ryuArgs = (f'--config-file {config_file}')
+    ryu_manager = RyuManager('ryu-manager', ryuArgs, modules=modules)
     net.addController(ryu_manager)
     with TerranetSimulator('channel_oracle_simulation', net, clean_after=False) as net:
         for i in range(0, arrivals):

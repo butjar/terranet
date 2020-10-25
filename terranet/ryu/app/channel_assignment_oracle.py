@@ -3,6 +3,8 @@ import functools
 
 import requests
 
+from ryu import cfg
+import oslo_config
 from ryu.controller.handler import set_ev_cls
 from ryu.lib import hub
 
@@ -15,17 +17,36 @@ from .customer_flow_pipeline import EventCustomerFlowAdded, \
 from .customer_allocation_monitor import CustomerAllocationMonitor
 from .ipv6_address_helper import IPv6AddressHelper
 
+
+opts = (cfg.StrOpt('topo', default='HybridVirtualFiberTopo',
+                   help='Topo file used to locate Komondor cache'),
+        oslo_config.cfg.DictOpt('ssids', default={},
+                                help='DN id to WiFi SSID mapping'),
+        oslo_config.cfg.DictOpt('proxy_ports', default={},
+                                help='DN id to NamespaceProxy port mapping')
+        )
+cfg.CONF.register_opts(opts, 'channel_oracle')
+
+
 class ChannelAssignmentOracle(CustomerAllocationMonitor):
     def __init__(self, *args, **kwars):
         super().__init__(*args, **kwars)
 
-        self.dn_config_dict = {
-            1: {'ssid': 'A', 'proxy_proxy': 8199},
-            2: {'ssid': 'B', 'proxy_proxy': 8299},
-            3: {'ssid': 'C', 'proxy_proxy': 8399}
-        }
+        self.CONF = self.CONF['channel_oracle']
+        self.logger.info('ChannelAssignmentOracle: Configured ssids {}.'
+                         .format(self.CONF.ssids))
+        self.logger.info('ChannelAssignmentOracle: '
+                         'Configured proxy ports {}.'
+                         .format(self.CONF.proxy_ports))
+        topo_dir = os.path.normpath(
+            os.path.join(os.path.dirname(__file__),
+            '../../topo')
+        )
+        topo = self.CONF.topo
+        komondor_config_dir = f'{topo_dir}/.komondor/{topo}'
+        self.logger.info('ChannelAssignmentOracle: Using komondor cache {}.'
+                         .format(komondor_config_dir))
 
-        komondor_config_dir = '/vagrant/terranet/topo/.komondor/HybridVirtualFiberTopo/'
         self.komondor_config_dir = os.path.abspath(komondor_config_dir)
         self.komondor_input_dir = f'{self.komondor_config_dir}/input'
         self.komondor_output_dir = f'{self.komondor_config_dir}/output'
@@ -56,7 +77,7 @@ class ChannelAssignmentOracle(CustomerAllocationMonitor):
     def assign_channels(self, channel_configs):
         for dn_id, conf in channel_configs.items():
             channel = conf['channel']
-            port = self.dn_config_dict[dn_id]['proxy_proxy']
+            port = int(self.CONF.proxy_ports[str(dn_id)])
             self._request_channel_switch(channel, port)
 
     def _request_channel_switch(self, channel, port,
@@ -64,25 +85,25 @@ class ChannelAssignmentOracle(CustomerAllocationMonitor):
         url = f'{host}:{port}/channel'
         payload = {'channel': channel}
         self.logger.info('ChannelAssignmentOracle: Posting channel switch '
-                         'url {} payload {}.\n'.format(url, payload))
+                         'url {} payload {}.'.format(url, payload))
         r = requests.post(url, json=payload)
         self.logger.info('ChannelAssignmentOracle: Channel switch response code '
-                         '{}, message {}.\n'.format(r.status_code, r.text))
+                         '{}, message {}.'.format(r.status_code, r.text))
         return r
 
     def _channel_configurations(self):
         oracle_dict = {}
-        if len(self.dn_config_dict) > len(self.customer_allocation):
+        if len(self.CONF.ssids) > len(self.customer_allocation):
             self.logger.warn('ChannelAssignmentOracle: Not all DNs have been '
                              'added to the database yet. Skipping channel '
-                             'assignment.\n')
+                             'assignment.')
             return None
         res = sorted(self._compute_oracle_dict(),
                      key=lambda x: x['jainXtpt'],
                      reverse=True)
         best = res[0]
         self.logger.info('ChannelAssignmentOracle: Best configuration {} for '
-                         'current customer distribution {}.\n'
+                         'current customer distribution {}.'
                          .format(best, self.customer_allocation))
 
         komondor_config = KomondorConfig(cfg_file=best['config_file'])
@@ -107,7 +128,7 @@ class ChannelAssignmentOracle(CustomerAllocationMonitor):
 
     def _analyse_komondor_result(self, komondor_result):
         configured_ssids = sorted(
-            [x['ssid'] for x in self.dn_config_dict.values()])
+            [x for x in self.CONF.ssids.values()])
         ssids = komondor_result.wlans()
         assert configured_ssids == ssids
 
@@ -154,7 +175,7 @@ class ChannelAssignmentOracle(CustomerAllocationMonitor):
 
     def get_dn_id_by_ssid(self, ssid):
         for dn_id in self.customer_allocation.keys():
-            config = self.dn_config_dict[dn_id]
-            if config.get('ssid') == ssid:
+            ssid_conf = self.CONF.ssids[str(dn_id)]
+            if ssid_conf == ssid:
                 return dn_id
         return None

@@ -28,7 +28,8 @@ setup(
     ],
     include_package_data=True,
     package_data={
-        'terranet': ['topo/.komondor/**/*']
+        'terranet': ['topo/.komondor/**/*',
+                     'ryu/app/cfg/*.conf']
     },
     scripts=['terranet/examples/run_virtual_fiber_net.py',
              'terranet/examples/run_hybrid_backup_net.py',
