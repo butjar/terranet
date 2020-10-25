@@ -31,8 +31,8 @@ class TerragraphLink(TerraLink):
                  params1={},
                  params2={},
                  *args, **kwargs):
-        params1.update({"bw": bw, "use_tbf": True})
-        params2.update({"bw": bw, "use_tbf": True})
+        #params1.update({"bw": bw, "use_tbf": True})
+        #params2.update({"bw": bw, "use_tbf": True})
         super(TerragraphLink, self).__init__(node1, node2,
                                              params1=params1,
                                              params2=params2,
