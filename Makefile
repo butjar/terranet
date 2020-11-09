@@ -1,75 +1,42 @@
 #!make
-SHELL := /bin/bash
 
-VERSION = $(shell cat VERSION)
-VAGRANTFILE_BUILD = Vagrantfile.build
-include atlas.env
-export $(shell sed 's/=.*//' atlas.env)
+# pypi
+include pypi.mk
 
-provider = virtualbox
-machines = terranet-base terranet
-boxes = $(addsuffix .box,$(machines))
-release_targets = $(addprefix release-,$(machines))
-upload_targets = $(addsuffix -upload.json,$(machines))
-clean_targets = $(addprefix clean-,$(machines))
-clean_box_targets = $(addsuffix -box,$(clean_targets))
-clean_upload_targets = $(addprefix clean-,$(upload_targets))
+# Vagrant
+BOXES := terranet terranet-base
+PROVIDERS := aws virtualbox
+BASE_TARGETS := all build clean
 
-.PHONY: $(machines)
-$(machines): %: .vagrant/machines/%/$(provider)/id
+PROVIDER_TARGET_SUFFIXES := aws virtualbox
+PROVIDER_TARGET_SUFFIXES += $(foreach provider,$(PROVIDERS),\
+	$(addprefix $(provider)-,$(BASE_TARGETS)))
 
-.vagrant/machines/%/$(provider)/id: $(VAGRANTFILE_BUILD)
-	VAGRANT_VAGRANTFILE=$(VAGRANTFILE_BUILD) vagrant plugin install vagrant-disksize --local
-	VAGRANT_VAGRANTFILE=$(VAGRANTFILE_BUILD) vagrant up $*
-	VAGRANT_VAGRANTFILE=$(VAGRANTFILE_BUILD) vagrant reload $*
+BOX_TARGET_SUFFIXES := terranet terranet-clean \
+	terranet-base terranet-base-clean
+BOX_TARGET_SUFFIXES += $(foreach box,$(BOXES),\
+	$(addprefix $(box)-,$(PROVIDER_TARGET_SUFFIXES)))
 
-$(boxes): %.box: .vagrant/machines/%/$(provider)/id
-	VAGRANT_VAGRANTFILE=$(VAGRANTFILE_BUILD) vagrant package $* --base $$(cat .vagrant/machines/$*/$(provider)/id) --output $@
+VAGRANT_TARGETS := vagrant-all vagrant-clean
+VAGRANT_TARGETS += $(addprefix vagrant-,$(BOX_TARGET_SUFFIXES))
 
-# See: - https://www.vagrantup.com/vagrant-cloud/boxes/create
-#      - https://www.vagrantup.com/vagrant-cloud/api
-.INTERMEDIATE: $(upload_targets)
-terranet-upload.json: version = $(shell cat VERSION)
-terranet-base-upload.json: version = $(shell cat BASEVM_VERSION)
-$(upload_targets): %-upload.json: %.box
-	curl -v \
-	     -H "Content-Type: application/json" \
-		 -H "Authorization: Bearer $(ATLAS_ACCESS_TOKEN)" \
-		 -d '{"version": {"version": "$(version)"}}' \
-		 "https://app.vagrantup.com/api/v1/box/$(ATLAS_USER)/$*/versions"
-	curl -v \
-	     -H "Content-Type: application/json" \
-		 -H "Authorization: Bearer $(ATLAS_ACCESS_TOKEN)" \
-		 -d '{"provider": {"name": "$(provider)"}}' \
-		 "https://app.vagrantup.com/api/v1/box/$(ATLAS_USER)/$*/version/$(version)/providers"
-	curl -v \
-		 -o $@ \
-		 -H "Authorization: Bearer $(ATLAS_ACCESS_TOKEN)" \
-		 "https://vagrantcloud.com/api/v1/box/$(ATLAS_USER)/$*/version/$(version)/provider/$(provider)/upload"
+.PHONY: vagrant $(VAGRANT_TARGETS)
+vagrant: vagrant-all
+$(VAGRANT_TARGETS): vagrant-%:
+	$(MAKE) -C vagrant $*
 
-.PHONY: $(release_targets)
-release-terranet: version = $(shell cat VERSION)
-release-terranet-base: version = $(shell cat BASEVM_VERSION)
-$(release_targets): release_url = $(shell cat $< | jq -r '.upload_path')
-$(release_targets): release-%: %-upload.json
-	curl -v \
-		 -XPUT \
-		 -T $*.box \
-		 $(release_url)
-	curl -v \
-	     -XPUT \
-		 -H "Authorization: Bearer $(ATLAS_ACCESS_TOKEN)" \
-		 "https://app.vagrantup.com/api/v1/box/$(ATLAS_USER)/$*/version/$(version)/release"
 
-.PHONY: clean $(clean_targets) $(clean_box_targets) $(clean_upload_targets)
-clean: $(clean_targets)
+# Main targets
+.PHONY: release release-terranet release-terranet-base
+release: release-terranet release-terranet-base
+release-terranet: release-%: pypi-release-%-dist vagrant-%
+release-terranet-base: release-%: vagrant-%
 
-$(clean_targets): clean-%: clean-%-box clean-%-upload.json
-	VAGRANT_VAGRANTFILE=$(VAGRANTFILE_BUILD) vagrant destroy $* -f
-	rm -rf .vagrant/machines/$*
+.PHONY: clean
+clean:
+	rm -rf *.log *.egg-info
 
-$(clean_box_targets): clean-%-box:
-	rm -rf $*.box
-
-$(clean_upload_targets): clean-%:
-	rm -rf $*
+.PHONY: clean-all clean-terranet clean-terranet-base
+clean-all: clean clean-terranet clean-terranet-base
+clean-terranet: pypi-clean vagrant-terranet-clean
+clean-terranet-base: vagrant-terranet-base-clean

@@ -1,13 +1,34 @@
+import os
 import itertools
 import collections
 from configparser import ConfigParser
+
+from .channel import Channel
+
+
+def _read_komondor_files(directory, cls):
+    config_dict = collections.OrderedDict()
+    files = [f for f in sorted(os.listdir(directory)) if f.endswith(".cfg")]
+    for cfg_file in files:
+        path = os.path.join(directory, cfg_file)
+        cfg = cls(path)
+        config_dict[cfg_file] = cfg
+    return config_dict
+
+
+def read_komondor_configs(dir):
+    return _read_komondor_files(dir, KomondorConfig)
+
+
+def read_komondor_results(dir):
+    return _read_komondor_files(dir, KomondorResult)
 
 
 class KomondorBaseConfig(ConfigParser):
     def __init__(self,
                  cfg_file=None,
                  **kwargs):
-        super(KomondorBaseConfig, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.cfg_file = cfg_file
         if self.cfg_file:
             self.read(cfg_file)
@@ -17,13 +38,10 @@ class KomondorBaseConfig(ConfigParser):
         return optionstr
 
     def sections_by_value(self, key, value):
-        sections = list(filter(lambda x: key in self[x] and self[x][key] == value,
-                               self.sections()))
-        return map(lambda x: self[x], sections)
+        return [self[x] for x in self.sections() if self[x].get(key) == value]
 
     def nodes(self):
-        sections = list(filter(lambda x: not x == "System",
-                               self.sections()))
+        return [self[x] for x in self.sections() if not x == 'System']
 
 
 class KomondorConfig(KomondorBaseConfig):
@@ -63,11 +81,26 @@ class KomondorConfig(KomondorBaseConfig):
     def sort_west_to_east(self, nodes):
         return sorted(nodes, key=lambda x: x["x"])
 
+    def ap_channel_configurations(self):
+        channel_config = []
+        for ap in self.access_points():
+            wlan_code = ap['wlan_code']
+            min_channel_allowed = ap['min_channel_allowed']
+            max_channel_allowed = ap['max_channel_allowed']
+            ch = Channel.channel_num(min_channel_allowed, max_channel_allowed)
+            channel_config.append({'name': ap.name,
+                                   'wlan_code': wlan_code,
+                                   'channel': ch,
+                                   'min_channel_allowed': min_channel_allowed,
+                                   'max_channel_allowed': max_channel_allowed})
+        return channel_config
+
+
 
 class KomondorConfigSection(collections.OrderedDict):
     def __init__(self, name, *args, **kwargs):
         self.name = name
-        super(KomondorConfigSection, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class KomondorSystemConfig(KomondorConfigSection):
@@ -96,7 +129,7 @@ class KomondorSystemConfig(KomondorConfigSection):
             ("capture_effect_model", 1)])
         config = defaults
         config.update(kwargs)
-        super(KomondorSystemConfig, self).__init__(name, *args, **config)
+        super().__init__(name, *args, **config)
 
 
 class KomondorNodeConfig(KomondorConfigSection):
@@ -134,9 +167,21 @@ class KomondorNodeConfig(KomondorConfigSection):
             name = "Node_AP_{}".format(name)
         else:
             name = "Node_STA_{}".format(name)
-        super(KomondorNodeConfig, self).__init__(name, *args, **config)
+        super().__init__(name, *args, **config)
 
 
 class KomondorResult(KomondorBaseConfig):
     def __init__(self, cfg_file=None):
-        super(KomondorResult, self).__init__(cfg_file=cfg_file)
+        super().__init__(cfg_file=cfg_file)
+
+    def nodes_by_wlan(self, wlan):
+        return self.sections_by_value('wlan', wlan)
+
+    def total_throughput(self):
+        return sum([int(self[x]['throughput']) for x in self.sections()])
+
+    def wlan_throughput(self, wlan):
+        return sum([int(x['throughput']) for x in self.nodes_by_wlan(wlan)])
+
+    def wlans(self):
+        return list(sorted(set([self[x]['wlan'] for x in self.sections()])))
