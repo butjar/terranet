@@ -6,8 +6,7 @@ touch /etc/rc.local
 apt-get install dialog apt-utils -y
 
 ## Install (ip)mininet VM
-curl -sSL https://raw.githubusercontent.com/cnp3/ipmininet/master/ipmininet/install/build_vm.sh \
-  | IPMN_REPO='https://github.com/butjar/ipmininet.git' IPMN_BRANCH='OpenR-seperate-logs-and-config-store' bash
+curl -sSL https://raw.githubusercontent.com/cnp3/ipmininet/master/ipmininet/install/build_vm.sh | bash
 rm -rf /etc/rc.local
 dpkg-reconfigure -fnoninteractive openssh-server
 
