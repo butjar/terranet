@@ -17,10 +17,12 @@ def toogle_customer_arrival(net, wait, customer):
 
 
 if __name__ == '__main__':
+    seed = 2000
+    rng = random.Random(seed)
     arrivals = 10
-    rng = random.Random(2000)
     customers = [f'h{x}{y}' for x in range(2,6) for y in ('a1','b1','c1')]
     customer_events = rng.choices(customers, k=arrivals)
+    np.random.seed(seed)
     lam = 90
     waits = np.random.poisson(lam, arrivals)
     topo = HybridVirtualFiberTopo()
