@@ -37,8 +37,8 @@
   "provisioners": [
     {
       "type": "file",
-      "sources": ["etc/", "var/"],
-      "destination": "/tmp/"
+      "sources": ["../../../etc", "../../../var"],
+      "destination": "/tmp"
     },
     {
       "type": "shell",
@@ -53,7 +53,7 @@
         "systemctl restart influxdb.service",
         "systemctl restart influxd.service",
         "systemctl restart grafana-server.service",
-        "pip3 install 'terranet=={{user `version`}}"
+        "pip3 install 'terranet=={{user `version`}}'"
       ],
       "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'"
     }
