@@ -2,7 +2,7 @@
   "variables": {
       "atlas_access_token": "{{env `ATLAS_ACCESS_TOKEN`}}",
       "version": null,
-      "_version": null,
+      "_version": null
   },
   "builders": [
     {

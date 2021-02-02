@@ -7,11 +7,13 @@ PYPI_DIST_SRCS := VERSION setup.py
 PYPI_DIST_ARTIFACTS := dist/terranet-$(VERSION)-py3-none-any.whl \
 	dist/terranet-$(VERSION).tar.gz
 
-.PHONY: pypi-all pypi-release-terranet-dist
-pypi-all: pypi-release-terranet-dist
+.PHONY: pypi pypi-all pypi-release-terranet-dist
+pypi pypi-all: pypi-release-terranet-dist
 pypi-release-terranet-dist: pypi-release-%-dist: dist/terranet-$(VERSION).tar.gz
 	python3 -m twine upload dist/$*-$(VERSION)* --config-file .pypirc
 
+.PHONY: pypi-build
+pypi-build: dist/terranet-$(VERSION).tar.gz
 $(PYPI_DIST_ARTIFACTS) &: $(PYPI_DIST_SRCS)
 	python3 setup.py bdist_wheel sdist
 

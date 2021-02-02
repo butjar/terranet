@@ -1,7 +1,7 @@
 Vagrant.configure("2") do |config|
   config.vm.define "source", autostart: false do |source|
 	source.vm.box = "{{.SourceBox}}"
-    output.vm.provider "virtualbox"
+    source.vm.provider "virtualbox"
 	config.ssh.insert_key = {{.InsertKey}}
   end
   config.vm.define "output" do |output|
