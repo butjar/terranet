@@ -1,1 +1,3 @@
 include Vagrantfile
+recursive-include terranet/topo/.komondor *.cfg
+recursive-include terranet/ryu/app/cfg/ *.conf
