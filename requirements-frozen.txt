@@ -15,7 +15,7 @@ influxdb==5.3.0
 ipaddress==1.0.23
 -e git+https://github.com/cnp3/ipmininet.git@80a2bf9b1ac2c0e0ac806924664e174034ae0018#egg=ipmininet
 itsdangerous==1.1.0
-Jinja2==2.11.2
+Jinja2==2.11.3
 Mako==1.0.14
 MarkupSafe==1.1.1
 mininet @ git+https://github.com/mininet/mininet@e0436642ae1005d2ec9f58ba698125d718072293
