@@ -5,7 +5,7 @@ collectd==1.0
 configparser==5.0.0
 debtcollector==2.2.0
 dnspython==1.16.0
-eventlet==0.27.0
+eventlet==0.31.0
 Flask==1.1.2
 greenlet==0.4.16
 idna==2.10
