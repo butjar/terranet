@@ -39,7 +39,7 @@ six==1.15.0
 sortedcontainers==2.2.2
 stevedore==3.2.2
 tinyrpc==1.0.4
-urllib3==1.25.10
+urllib3==1.26.5
 WebOb==1.8.6
 Werkzeug==1.0.1
 whichcraft==0.6.1
